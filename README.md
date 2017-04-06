@@ -1,4 +1,4 @@
-mandelBig
+MandelBig
 ---------
 
 What is this project?  Like [package.json](package.json) says, "Generate Mandelbrot images in JavaScript using BigNumber.js."
