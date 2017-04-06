@@ -1,0 +1,20 @@
+# Site settings
+
+title: "MandelBig"
+email: Jeff@pcjs.org
+description: >
+  Welcome to MandelBig!
+baseurl: ""
+url: "http://mandelbig.com"
+twitter_username: jeffpar
+github_username:  jeffpar
+google_analytics: UA-49658648-2
+
+# Build settings
+
+theme: jekyll-theme-cayman
+exclude: ["CNAME", "Gemfile*", "HISTORY.*", "node_modules", "package.json", "README.*", ".git", ".idea"]
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
