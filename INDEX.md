@@ -5,4 +5,4 @@ permalink: /
 Welcome to MandelBig
 --------------------
 
-Something will appear here eventually.
+Something *will* appear here eventually.
