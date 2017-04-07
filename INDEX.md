@@ -6,7 +6,7 @@ viewports:
     height: 200
 ---
 
-Welcome to MandelBig
+Welcome to MandelBOt
 --------------------
 
 Something *will* appear here eventually.

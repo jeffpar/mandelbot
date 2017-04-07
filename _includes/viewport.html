@@ -6,7 +6,7 @@ Viewports may have the following properties:
 {% endcomment %}
 {% for viewport in page.viewports %}
   {% if include.id == viewport.id %}
-<canvas class="mandelbig-viewport" id="{{ viewport.id }}" width="{{ viewport.width }}" height=" {{ viewport.height }}"></canvas>
+<canvas class="mandelbot-viewport" id="{{ viewport.id }}" width="{{ viewport.width }}" height=" {{ viewport.height }}"></canvas>
 <script type="text/javascript">initViewport("{{ viewport.id }}");</script>
     {% break %}
   {% endif %}

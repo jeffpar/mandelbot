@@ -1,11 +1,11 @@
 # Site settings
 
-title: "MandelBig"
+title: "MandelBot"
 email: Jeff@pcjs.org
 description: >
-  Welcome to MandelBig!
+  Welcome to MandelBot!
 baseurl: ""
-url: "http://mandelbig.com"
+url: "http://mandelbot.net"
 twitter_username: jeffpar
 github_username:  jeffpar
 google_analytics: UA-49658648-2

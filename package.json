@@ -1,5 +1,5 @@
 {
-  "name": "mandelbig",
+  "name": "mandelbot",
   "version": "1.0.0",
   "description": "Generate Mandelbrot images in JavaScript using BigNumber.js",
   "main": "index.js",
@@ -13,6 +13,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/jeffpar/mandelbig.git"
+    "url": "git://github.com/jeffpar/mandelbot.git"
   }
 }
