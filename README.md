@@ -13,5 +13,5 @@ Inspiration: [The Mandelwat Set](https://medium.com/dailyjs/the-mandelwat-set-c3
 
 Copyright: © Jeff Parsons 2017
 
-License: This is an open-source project that may be freely reused in any way.  All I ask is that you provide attribution along
-with the above copyright in any derivative work.
+License: This is an open source project that may be freely reused in any derivative work, provided you include some
+attribution along with the above copyright.
