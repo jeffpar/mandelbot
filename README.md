@@ -1,8 +1,17 @@
 MandelBot
 ---------
 
-What is this project?  Like [package.json](package.json) says, "Generate Mandelbrot images in JavaScript using BigNumber.js."
-There are no new ideas here.  This is just an excuse to learn some new things, including how to use the
+What is this project?  For now, it's like the [package.json](package.json) says:
+
+	Generate Mandelbrot images in JavaScript using BigNumber.js
+	
+This project is really just an excuse to learn some new things, including how to use the
 [BigNumber](https://github.com/MikeMcl/bignumber.js) JavaScript library.
 
-Inspiration: [The Mandelwat Set](https://medium.com/dailyjs/the-mandelwat-set-c3037204bf83) by [Jeff Fowler](http://blog.jfo.click/).
+Inspiration: [The Mandelwat Set](https://medium.com/dailyjs/the-mandelwat-set-c3037204bf83) by
+[Jeff Fowler](http://blog.jfo.click/).
+
+Copyright: © Jeff Parsons 2017
+
+License: This is an open-source project that may be freely reused in any way.  All I ask is that you provide attribution along
+with the above copyright in any derivative work.
