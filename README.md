@@ -59,7 +59,7 @@ Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll
 Operation
 ---------
 
-Mandelbots are instantiated in a Jekyll Markdown document, like the [INDEX.md](INDEX.md) home page, using the
+Mandelbots are instantiated in a Jekyll Markdown document, like the [home page](INDEX.md), using the
 [viewport](_includes/viewport.html) include file:
 
 	{% include viewport.html id="mandelbot1" width="200" height="200" %}
