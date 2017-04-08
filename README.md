@@ -59,20 +59,21 @@ Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll
 Operation
 ---------
 
-Mandelbots are instantiated in a Jekyll Markdown document using the [viewport](_includes/viewport.html) include file:
+Mandelbots are instantiated in a Jekyll Markdown document, like the [INDEX.md](INDEX.md) home page, using the
+[viewport](_includes/viewport.html) include file:
 
 	{% include viewport.html id="mandelbot1" width="200" height="200" %}
 	
 For documents containing multiple Mandelbots, it may be better to define each viewport's configuration parameters at the
-top of the Markdown document, in the Jekyll Front Matter:
+top of the Markdown document:
 
 	---
 	...
 	viewports:
 	  - id: mandelbot1
-		width: 200
-		height: 200
-		...
+	    width: 200
+	    height: 200
+	    ...
 	---
 
 And then each Mandelbot can be instantiated with just an *id* parameter:
@@ -82,16 +83,17 @@ And then each Mandelbot can be instantiated with just an *id* parameter:
 Modification
 ------------
 
-Google's Closure Compiler is used to create minified JavaScript files, which I've configured a WebStorm File Watcher
-to automatically run with the following options:
+Google's [Closure Compiler](https://developers.google.com/closure/compiler/) is used to create minified JavaScript files,
+which I've configured a [WebStorm](https://www.jetbrains.com/webstorm/) File Watcher to automatically run with the following
+options:
 
 	node_modules/google-closure-compiler/compiler.jar --compilation_level ADVANCED_OPTIMIZATIONS \
 	--create_source_map $FileName$.map --output_wrapper "(function(){%output%})() //# sourceMappingURL=/src/$FileName$.map" \
 	--js $FileName$ --js_output_file  $FileNameWithoutExtension$.min.js
 
-Both the original and minified JavaScript files are checked into the project, so this may be of little interest unless you
-plan to modify the JavaScript files, in which case you'll want to use NPM to install the development tools listed in
-[package.json](package.json):
+Both the original and minified JavaScript [source files](/src/) are checked into the project, so this may be of little interest
+unless you plan to modify the JavaScript files, in which case you can install the Closure Compiler and other assorted development
+tools listed in [package.json](package.json) using NPM:
 
 	npm install
 
