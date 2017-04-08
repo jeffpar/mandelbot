@@ -1,4 +1,4 @@
-MandelBot
+Mandelbot
 ---------
 
 What is this project?  Like the [package.json](package.json) says:
@@ -46,14 +46,14 @@ corresponding Terminal commands.
 
 ##### Step 7: Fire up your web browser and visit [http://localhost:4000](http://localhost:4000/).
 
-In a perfect world, the above steps would be sufficient.  Unfortunately, I ran into several problems along the way.  Those
-were resolved by:
+In a perfect world, the above steps would be sufficient.  Unfortunately, I ran into several problems along the way.
+Those were resolved by:
 
 - Updating Xcode to the latest version
 - Running `xcode-select --install` from a Terminal window
 
 Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll serve`, but including the
-[_developer.yml](_developer.yml) configuration file should prevent production-only features (e.g., Google Analytics)
+[_developer.yml](_developer.yml) configuration file prevents production-only features (e.g., Google Analytics)
 from being included in the generated files.
 
 Inspiration
