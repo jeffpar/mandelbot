@@ -61,7 +61,7 @@ Operation
 
 Mandelbots are instantiated in a Jekyll Markdown document using the [viewport](_includes/viewport.html) include file:
 
-	{% include viewport.html id="mandelbot1" width="200px" height="200px" %}
+	{% include viewport.html id="mandelbot1" width="200" height="200" %}
 	
 For documents containing multiple Mandelbots, it may be better to define each viewport's configuration parameters at the
 top of the Markdown document, in the Jekyll Front Matter:
