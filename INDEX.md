@@ -1,3 +1,7 @@
+---
+permalink: /
+---
+
 Welcome to Mandelbot
 --------------------
 
