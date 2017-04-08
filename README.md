@@ -12,8 +12,9 @@ the [BigNumber](https://github.com/MikeMcl/bignumber.js) JavaScript library.
 Installation
 ------------
 
-This project has already been installed at [http://mandelbot.net](http://mandelbot.net/) using
-[GitHub Pages](https://pages.github.com/).
+This project has already been installed at [mandelbot.net](http://mandelbot.net/) using
+[GitHub Pages](https://pages.github.com/) and the [gh-pages](https://github.com/jeffpar/mandelbot/tree/gh-pages)
+branch of this project.
 
 However, if want to install and serve your own local copy of the files, here are the steps for macOS and the
 corresponding Terminal commands.
