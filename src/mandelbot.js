@@ -12,13 +12,14 @@
 let activeViewports = [];
 
 /**
- * initViewport(id)
+ * initViewport(idCanvas, idStatus)
  *
- * @param {string} id
+ * @param {string} idCanvas
+ * @param {string} [idStatus]
  */
-function initViewport(id)
+function initViewport(idCanvas, idStatus)
 {
-    let viewport = new Viewport(id);
+    let viewport = new Viewport(idCanvas, idStatus);
     if (viewport.canvas) {
         activeViewports.push(viewport);
     }
@@ -29,21 +30,29 @@ function initViewport(id)
  * @unrestricted
  * @property {HTMLCanvasElement} canvas
  * @property {CanvasRenderingContext2D} context
+ * @property {Element} status
  */
 class Viewport {
 
     /**
-     * Viewport(id)
+     * Viewport(idCanvas)
      *
      * @this {Viewport}
-     * @param {string} id
+     * @param {string} idCanvas
+     * @param {string} [idStatus]
      */
-    constructor(id) {
-        this.canvas = document.getElementById(id);
+    constructor(idCanvas, idStatus) {
+        this.canvas = document.getElementById(idCanvas);
         if (this.canvas) {
             this.context = this.canvas.getContext("2d");
             if (this.context) {
                 this.init(this.context);
+            }
+        }
+        if (idStatus) {
+            this.status = document.getElementById(idStatus);
+            if (this.status) {
+                this.status.innerHTML = new BigNumber(42).toString();
             }
         }
     }

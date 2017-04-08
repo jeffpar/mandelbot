@@ -1,13 +1,17 @@
 {% comment %}
 Viewports may have the following properties:
-  'id' (eg, "mandel01")
+  'id' (eg, "mandelbot1")
   'width' (eg, "200px")
   'height' (eg, "200px")
+  'idStatus' (optional id of a status window)
 {% endcomment %}
 {% for viewport in page.viewports %}
   {% if include.id == viewport.id %}
 <canvas class="mandelbot-viewport" id="{{ viewport.id }}" width="{{ viewport.width }}" height=" {{ viewport.height }}"></canvas>
-<script type="text/javascript">initViewport("{{ viewport.id }}");</script>
+    {% if viewport.idStatus %}
+<p class="mandelbot-status" id="{{ viewport.idStatus }}">No status</p>
+    {% endif %}
+<script type="text/javascript">initViewport("{{ viewport.id }}","{{ viewport.idStatus }}");</script>
     {% break %}
   {% endif %}
 {% endfor %}

@@ -1,0 +1,3 @@
+[submodule "src/bignumber"]
+	path = src/bignumber
+	url = https://github.com/jeffpar/bignumber.js.git
