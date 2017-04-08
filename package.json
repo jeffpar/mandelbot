@@ -7,7 +7,8 @@
   },
   "author": "Jeff Parsons <Jeff@pcjs.org>",
   "dependencies": {
-    "bignumber.js": "^4.0.1"
+    "bignumber.js": "^4.0.1",
+    "google-closure-compiler": "^20170218.0.0"
   },
   "repository": {
     "type": "git",

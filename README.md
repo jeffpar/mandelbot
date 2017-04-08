@@ -51,8 +51,49 @@ Those were resolved by:
 - Running `xcode-select --install` from a Terminal window
 
 Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll serve`, but including the
-[_developer.yml](_developer.yml) configuration file prevents production-only features (e.g., Google Analytics)
-from being included in the generated files.
+[_developer.yml](_developer.yml) configuration file turns off certain production-only features, such as:
+
+- Google Analytics
+- Minified JavaScript
+
+Operation
+---------
+
+Mandelbots are instantiated in a Jekyll Markdown document using the [viewport](_includes/viewport.html) include file:
+
+	{% include viewport.html id="mandelbot1" width="200px" height="200px" %}
+	
+For documents containing multiple Mandelbots, it may be better to define each viewport's configuration parameters at the
+top of the Markdown document, in the Jekyll Front Matter:
+
+	---
+	...
+	viewports:
+	  - id: mandelbot1
+		width: 200
+		height: 200
+		...
+	---
+
+And then each Mandelbot can be instantiated with just an *id* parameter:
+
+	{% include viewport.html id="mandelbot1" %}
+
+Modification
+------------
+
+Google's Closure Compiler is used to create minified JavaScript files, which I've configured a WebStorm File Watcher
+to automatically run with the following options:
+
+	node_modules/google-closure-compiler/compiler.jar --compilation_level ADVANCED_OPTIMIZATIONS \
+	--create_source_map $FileName$.map --output_wrapper "(function(){%output%})() //# sourceMappingURL=/src/$FileName$.map" \
+	--js $FileName$ --js_output_file  $FileNameWithoutExtension$.min.js
+
+Both the original and minified JavaScript files are checked into the project, so this may be of little interest unless you
+plan to modify the JavaScript files, in which case you'll want to use NPM to install the development tools listed in
+[package.json](package.json):
+
+	npm install
 
 Inspiration
 -----------

@@ -1,7 +1,7 @@
 /**
  * @fileoverview Implements Mandelbots
  * @author <a href="mailto:Jeff@pcjs.org">Jeff Parsons</a>
- * @copyright © Jeff Parsons 2017
+ * @copyright mandelbot.js Copyright (c) Jeff Parsons 2017
  *
  * This file is part of an open-source project (mandelbot) and may be freely reused.
  * Any derivative work just needs to provide attribution along with the above copyright.
@@ -10,6 +10,8 @@
 "use strict";
 
 let activeViewports = [];
+
+window['initViewport'] = initViewport;
 
 /**
  * initViewport(idCanvas, idStatus)
@@ -26,8 +28,9 @@ function initViewport(idCanvas, idStatus)
 }
 
 /**
- * @class
+ * @class Viewport
  * @unrestricted
+ *
  * @property {HTMLCanvasElement} canvas
  * @property {CanvasRenderingContext2D} context
  * @property {Element} status

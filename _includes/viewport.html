@@ -3,15 +3,23 @@ Viewports may have the following properties:
   'id' (eg, "mandelbot1")
   'width' (eg, "200px")
   'height' (eg, "200px")
-  'idStatus' (optional id of a status window)
+  'idStatus' (optional id of a status control)
 {% endcomment %}
 {% for viewport in page.viewports %}
   {% if include.id == viewport.id %}
-<canvas class="mandelbot-viewport" id="{{ viewport.id }}" width="{{ viewport.width }}" height=" {{ viewport.height }}"></canvas>
+    {% assign viewport_id = viewport.id %}
+  <canvas class="mandelbot-viewport" id="{{ viewport.id }}" width="{{ viewport.width }}" height="{{ viewport.height }}"></canvas>
     {% if viewport.idStatus %}
-<p class="mandelbot-status" id="{{ viewport.idStatus }}">No status</p>
+  <p class="mandelbot-status" id="{{ viewport.idStatus }}">No status</p>
     {% endif %}
-<script type="text/javascript">initViewport("{{ viewport.id }}","{{ viewport.idStatus }}");</script>
+  <script type="text/javascript">initViewport("{{ viewport.id }}","{{ viewport.idStatus }}");</script>
     {% break %}
   {% endif %}
 {% endfor %}
+{% if viewport_id == nil %}
+  <canvas class="mandelbot-viewport" id="{{ include.id }}" width="{{ include.width }}" height="{{ include.height }}"></canvas>
+  {% if include.idStatus %}
+  <p class="mandelbot-status" id="{{ include.idStatus }}">No status</p>
+  {% endif %}
+  <script type="text/javascript">initViewport("{{ include.id }}","{{ include.idStatus }}");</script>
+{% endif %}
