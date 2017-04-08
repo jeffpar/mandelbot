@@ -2,12 +2,10 @@
   "name": "mandelbot",
   "version": "1.0.0",
   "description": "Generate Mandelbrot images in JavaScript using BigNumber.js",
-  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Jeff Parsons <Jeff@pcjs.org>",
-  "license": "GPL-3.0",
   "dependencies": {
     "bignumber.js": "^4.0.1"
   },
