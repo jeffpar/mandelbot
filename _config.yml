@@ -1,19 +1,19 @@
 # Site settings
 
-title: "MandelBot"
+title: "Mandelbot"
 email: Jeff@pcjs.org
 description: >
-  Welcome to MandelBot!
+  Welcome to Mandelbot!
 baseurl: ""
 url: "http://mandelbot.net"
-twitter_username: jeffpar
+twitter_username: mandelbotnet
 github_username:  jeffpar
 google_analytics: UA-49658648-2
 
 # Build settings
 
 theme: jekyll-theme-cayman
-exclude: ["CNAME", "Gemfile*", "HISTORY.*", "node_modules", "package.json", "README.*", ".git", ".idea"]
+exclude: ["CNAME", "Gemfile*", "node_modules", "package.json", "README.*", ".git", ".idea"]
 markdown: kramdown
 kramdown:
   input: GFM
