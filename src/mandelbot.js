@@ -73,15 +73,8 @@ class Viewport {
             this.cxScreen = this.canvasScreen.width;
             this.cyScreen = this.canvasScreen.height;
             this.contextScreen = this.canvasScreen.getContext("2d");
-            if (this.contextScreen) {
-                this.contextScreen.beginPath();
-                this.contextScreen.rect(0, 0, this.canvasScreen.width, this.canvasScreen.height);
-                this.contextScreen.fillStyle = Viewport.randomCSSColor();
-                this.contextScreen.fill();
-                return true;
-            }
         }
-        return false;
+        return !!this.contextScreen;
     }
 
     /**
@@ -104,11 +97,10 @@ class Viewport {
                 this.canvasGrid.height = cyGrid;
                 if (this.contextGrid = this.canvasGrid.getContext("2d")) {
                     this.drawGrid();
-                    return true;
                 }
             }
         }
-        return false;
+        return !!this.contextGrid;
     }
 
     /**
@@ -159,17 +151,5 @@ class Viewport {
     static randomColor()
     {
         return Math.floor(Math.random() * 0x1000000);
-    }
-
-    /**
-     * randomCSSColor()
-     *
-     * Courtesy of https://www.paulirish.com/2009/random-hex-color-code-snippets/
-     *
-     * @return {string}
-     */
-    static randomCSSColor()
-    {
-        return '#' + Math.floor(Math.random() * 0x1000000).toString(16).toUpperCase();
     }
 }
