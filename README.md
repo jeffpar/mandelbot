@@ -54,7 +54,7 @@ Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll
 [_developer.yml](_developer.yml) configuration file turns off certain production-only features, such as:
 
 - Google Analytics
-- Minified JavaScript
+- Minified ES5-compatible JavaScript
 
 Operation
 ---------
@@ -83,9 +83,8 @@ And then each Mandelbot can be instantiated with just an *id* parameter:
 Modification
 ------------
 
-Google's [Closure Compiler](https://developers.google.com/closure/compiler/) is used to create minified JavaScript files,
-which I've configured a [WebStorm](https://www.jetbrains.com/webstorm/) File Watcher to automatically run with the following
-options:
+Google's [Closure Compiler](https://developers.google.com/closure/compiler/) is used to create minified, ES5-compatible
+JavaScript files via a [WebStorm](https://www.jetbrains.com/webstorm/) File Watcher:
 
 	node_modules/google-closure-compiler/compiler.jar --compilation_level ADVANCED_OPTIMIZATIONS \
 	--create_source_map $FileName$.map --output_wrapper "(function(){%output%})() //# sourceMappingURL=/src/$FileName$.map" \
@@ -93,7 +92,7 @@ options:
 
 Both the original and minified JavaScript [source files](/src/) are checked into the project, so this may be of little interest
 unless you plan to modify the JavaScript files, in which case you can install the Closure Compiler and other assorted development
-tools listed in [package.json](package.json) using NPM:
+tools listed in [package.json](package.json) using the Node Package Manager:
 
 	npm install
 
