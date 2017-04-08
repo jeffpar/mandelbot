@@ -6,11 +6,9 @@ viewports:
     height: 200
 ---
 
-Welcome to MandelBot
+Welcome to Mandelbot
 --------------------
 
-Something *will* appear here eventually.
+Something will appear here eventually.
 
 {% include viewport.html id="mandel01" %}
-
-There, see, what did I tell you?
