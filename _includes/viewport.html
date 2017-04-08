@@ -1,9 +1,11 @@
 {% comment %}
 Viewports may have the following properties:
-  'id' (eg, "mandelbot1")
-  'width' (eg, "200px")
-  'height' (eg, "200px")
-  'idStatus' (optional id of a status control)
+  id (eg, mandelbot1)
+  width (eg, 200)
+  height (eg, 200)
+  gridWidth (eg, 400)
+  gridHeight (eg, 400)
+  idStatus (optional id of a status control)
 {% endcomment %}
 {% for viewport in page.viewports %}
   {% if include.id == viewport.id %}
@@ -12,7 +14,7 @@ Viewports may have the following properties:
     {% if viewport.idStatus %}
   <p class="mandelbot-status" id="{{ viewport.idStatus }}">No status</p>
     {% endif %}
-  <script type="text/javascript">initViewport("{{ viewport.id }}","{{ viewport.idStatus }}");</script>
+  <script type="text/javascript">initViewport("{{ viewport.id }}",{{ viewport.gridWidth }},{{ viewport.gridHeight }},"{{ viewport.idStatus }}");</script>
     {% break %}
   {% endif %}
 {% endfor %}
@@ -21,5 +23,5 @@ Viewports may have the following properties:
   {% if include.idStatus %}
   <p class="mandelbot-status" id="{{ include.idStatus }}">No status</p>
   {% endif %}
-  <script type="text/javascript">initViewport("{{ include.id }}","{{ include.idStatus }}");</script>
+  <script type="text/javascript">initViewport("{{ include.id }}",{{ include.gridWidth }},{{ include.gridHeight }},"{{ include.idStatus }}");</script>
 {% endif %}

@@ -17,12 +17,14 @@ window['initViewport'] = initViewport;
  * initViewport(idCanvas, idStatus)
  *
  * @param {string} idCanvas
+ * @param {number} cxGrid
+ * @param {number} cyGrid
  * @param {string} [idStatus]
  */
-function initViewport(idCanvas, idStatus)
+function initViewport(idCanvas, cxGrid, cyGrid, idStatus)
 {
-    let viewport = new Viewport(idCanvas, idStatus);
-    if (viewport.canvas) {
+    let viewport = new Viewport(idCanvas, cxGrid, cyGrid, idStatus);
+    if (viewport.canvasScreen) {
         activeViewports.push(viewport);
     }
 }
@@ -31,26 +33,25 @@ function initViewport(idCanvas, idStatus)
  * @class Viewport
  * @unrestricted
  *
- * @property {HTMLCanvasElement} canvas
- * @property {CanvasRenderingContext2D} context
+ * @property {HTMLCanvasElement} canvasScreen
+ * @property {CanvasRenderingContext2D} contextScreen
  * @property {Element} status
  */
 class Viewport {
 
     /**
-     * Viewport(idCanvas)
+     * Viewport(idCanvas, cxGrid, cyGrid, idStatus)
      *
      * @this {Viewport}
      * @param {string} idCanvas
+     * @param {number} cxGrid
+     * @param {number} cyGrid
      * @param {string} [idStatus]
      */
-    constructor(idCanvas, idStatus) {
-        this.canvas = document.getElementById(idCanvas);
-        if (this.canvas) {
-            this.context = this.canvas.getContext("2d");
-            if (this.context) {
-                this.init(this.context);
-            }
+    constructor(idCanvas, cxGrid, cyGrid, idStatus) {
+        this.canvasScreen = /** @type {HTMLCanvasElement} */ (document.getElementById(idCanvas));
+        if (this.initScreen()) {
+            this.initGrid(cxGrid, cyGrid);
         }
         if (idStatus) {
             this.status = document.getElementById(idStatus);
@@ -61,27 +62,114 @@ class Viewport {
     }
 
     /**
-     * init(context)
+     * initScreen()
      *
-     * @param {CanvasRenderingContext2D} context
+     * @this {Viewport}
+     * @return {boolean}
      */
-    init(context)
+    initScreen()
     {
-        context.beginPath();
-        context.rect(0, 0, this.canvas.width, this.canvas.height);
-        context.fillStyle = Viewport.randomColor();
-        context.fill();
+        if (this.canvasScreen) {
+            this.cxScreen = this.canvasScreen.width;
+            this.cyScreen = this.canvasScreen.height;
+            this.contextScreen = this.canvasScreen.getContext("2d");
+            if (this.contextScreen) {
+                this.contextScreen.beginPath();
+                this.contextScreen.rect(0, 0, this.canvasScreen.width, this.canvasScreen.height);
+                this.contextScreen.fillStyle = Viewport.randomCSSColor();
+                this.contextScreen.fill();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * initGrid(cxGrid, cyGrid)
+     *
+     * @this {Viewport}
+     * @param {number} cxGrid
+     * @param {number} cyGrid
+     * @return {boolean}
+     */
+    initGrid(cxGrid, cyGrid)
+    {
+        this.cxGrid = cxGrid;
+        this.cyGrid = cyGrid;
+        this.imageGrid = this.contextScreen.createImageData(cxGrid, cyGrid);
+        if (this.imageGrid) {
+            this.canvasGrid = document.createElement("canvas");
+            if (this.canvasGrid) {
+                this.canvasGrid.width = cxGrid;
+                this.canvasGrid.height = cyGrid;
+                if (this.contextGrid = this.canvasGrid.getContext("2d")) {
+                    this.drawGrid();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * drawGrid()
+     *
+     * @this {Viewport}
+     */
+    drawGrid()
+    {
+        let nRGB = Viewport.randomColor();
+        for (let y = 0; y < this.cyGrid; y++) {
+            for (let x = 0; x < this.cxGrid; x++) {
+                this.setGridPixel(x, y, nRGB);
+            }
+        }
+
+        let xDirty = 0;
+        let yDirty = 0;
+        let cxDirty = this.cxGrid;
+        let cyDirty = this.cyGrid;
+        this.contextGrid.putImageData(this.imageGrid, 0, 0, xDirty, yDirty, cxDirty, cyDirty);
+
+        this.contextScreen.drawImage(this.canvasGrid, 0, 0, this.canvasGrid.width, this.canvasGrid.height, 0, 0, this.cxScreen, this.cyScreen);
+    }
+
+    /**
+     * setGridPixel(x, y, nRGB)
+     *
+     * @this {Viewport}
+     * @param {number} x
+     * @param {number} y
+     * @param {number} nRGB
+     */
+    setGridPixel(x, y, nRGB)
+    {
+        let i = (x + y * this.imageGrid.width) * 4;
+        this.imageGrid.data[i] = nRGB & 0xff;
+        this.imageGrid.data[i+1] = (nRGB >> 8) & 0xff;
+        this.imageGrid.data[i+2] = (nRGB >> 16) & 0xff;
+        this.imageGrid.data[i+3] = 0xff;
     }
 
     /**
      * randomColor()
      *
+     * @return {number}
+     */
+    static randomColor()
+    {
+        return Math.floor(Math.random() * 0x1000000);
+    }
+
+    /**
+     * randomCSSColor()
+     *
      * Courtesy of https://www.paulirish.com/2009/random-hex-color-code-snippets/
      *
      * @return {string}
      */
-    static randomColor()
+    static randomCSSColor()
     {
-        return '#'+Math.floor(Math.random()*16777215).toString(16).toUpperCase();
+        return '#' + Math.floor(Math.random() * 0x1000000).toString(16).toUpperCase();
     }
 }
