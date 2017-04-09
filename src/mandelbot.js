@@ -52,7 +52,7 @@ class Viewport {
     {
         this.x = -0.5;
         this.y = 0;
-        this.r = 3;
+        this.w = 3;
         this.canvasView = /** @type {HTMLCanvasElement} */ (document.getElementById(idCanvas));
         if (this.initView()) {
             this.initGrid(cxGrid, cyGrid);
@@ -130,11 +130,11 @@ class Viewport {
      */
     drawGrid()
     {
-        let yTop = this.y + this.r/2;
-        let yInc = this.r / this.cyGrid;
+        let yTop = this.y + this.w/2;
+        let yInc = this.w / this.cyGrid;
         for (let row = 0; row < this.cyGrid; row++) {
-            let xLeft = this.x - this.r/2;
-            let xInc = this.r / this.cxGrid;
+            let xLeft = this.x - this.w/2;
+            let xInc = this.w / this.cxGrid;
             for (let col = 0; col < this.cxGrid; col++) {
                 let nRGB = Viewport.isMandelbrot(xLeft, yTop, 100)? -1 : 0;
                 this.setGridPixel(row, col, nRGB);
