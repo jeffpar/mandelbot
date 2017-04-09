@@ -9,6 +9,10 @@ However, this is a work-in-progress, so there isn't a lot to do here yet.  I sta
 and an excuse to learn some new things, including how to use (and possibly modify) the
 [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library.
 
+If you're just here to see the JavaScript code that calculates which numbers are in the Mandelbrot set and graphs them,
+that's in [src/mandelbot.js](src/mandelbot.js).  An assortment of old Pascal, C, and 8088 assembly-language code that
+I wrote over 30 years ago has also been in archived in [src/old](src/old/).
+
 Installation
 ------------
 
