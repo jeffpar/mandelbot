@@ -1,13 +1,17 @@
-/* mbrot.c  v3.02
+/* mbrot.c  v3.10
  *
- * Original version (3.00) by Jeff Parsons  8/86
+ * Original program (3.00) by Jeff Parsons  8/86
  * Original recursive algorithm by Bill Mershon  8/86
  *
  * Graphs regions in and around the Mandelbrot set,
  * as outlined in the August '85 issue of Scientific American.
- *
  * Supports all common IBM display modes, using CGA or EGA adapters.
  *
+ * Present limitations (based on features listed below):
+ *	Not all options implemented
+ *	Recursive algorithm not implemented
+ *	Not all supported hardware configurations tested
+ *	Graphics support still needs some speed optimizations
  *
  * Usage:  mbrot [graph-file] [options...]
  *	Graph-file is the name of a file to create or restore from
@@ -30,18 +34,17 @@
  *		yet designed) made available (on completion of a graph);
  *	-n	inhibits graph display during computation, which normally
  *		occurs only when -l option selected;
- *	-t	displays time required for graph computation (and possibly
- *		other statistics) when the graph is completed;
  *	-kstrng	selects the colors to be used;  format of strng is
  *		<color-code><intensity-value>..., where <color-code> is
- *		b(black), u(blue), g(green), c(cyan), r(red), m(magenta),
- *		o(brown), or w(white);  <intensity-value> is a digit 1-8;
+ *		B(black), b(blue), g(green), c(cyan), r(red), m(magenta),
+ *		o(orange), or w(white);  <intensity-value> is a digit 1-8;
  *		the first code/value is reserved for the color of Mandelbrot
- *		points;  (example: b1u1u2g1c1r1m1o1w1 selects black for
+ *		points;  (example: B1u1u2g1c1r1m1o1w1 selects black for
  *		Mandelbrot points and eight other colors, repeated as needed);
  *		maximum colors allowed following Mandelbrot color: 15 +
  *		optional border color;
- *	-j#	selects # of iterations spanned by each color;  default 1;
+ *	-j#	selects color granularity (# of iterations spanned per
+ *		color);  default is 1;
  *	-c	selects CREATE mode, for which the values listed
  *		below are needed (otherwise they will be prompted for);
  *		without this option, the program is in RESTORE mode,
@@ -50,9 +53,11 @@
  *		(or to restore from a non-existent file) is a fatal error;
  *	-cu	same as -c, but is UNCONDITIONAL (ie, if graph-file exists,
  *		it will be deleted first);
- *	-ifile	specifies an image-library-file to save the image
- *		once it has been created (or restored);  if not given,
- *		it will be prompted for, but it will not be required;
+ *	-ifile	specifies an image-library-file to add the image to
+ *		once it has been created (or restored), which contains
+ *		images stored in a format suitable for rapid video display;
+ *		if not given, it will be prompted for, but it will not be
+ *		required;
  *	-v	causes the program to wait for a keyboard response
  *		after restoring each frame of an image-library-file;
  *	-x#.#	specifies x (real) co-ordinate of graph center,
@@ -75,8 +80,9 @@
  *		those seen on a normal IRGB Color Display (unless a different
  *		coloring scheme is selected with the k option); default
  *		value depends on equipment installed;
- *	-m#	specifies the algorithm limit (defaults to 1000, usual
- *		limits are 100 to 32000);
+ *	-m#	specifies the algorithm limit (defaults to 250, usual
+ *		limits are 100 to 64k);
+ *	-f#	forces the data storage format # (defaults to COMPACT);
  *	-s	specifies "sequential" (or standard iterative) algorithm;
  *		if omitted, then the *new* recursive algorithm will be used
  *		(which analyzes borders of successive block-divisions of the
@@ -87,7 +93,7 @@
  *	2. File open/create error
  *
  * Examples:
- *	mbrot mbrot.1 /c /x-1.25 /y0 /w2.5 /imbrot.mem
+ *	mbrot mbrot.1 -c -x -1.25 -y0 -w2.5 -i mbrot.mem
  */
 
 
@@ -97,30 +103,96 @@
 
 #include <dos.h>
 #include <conio.h>
+#include <io.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <signal.h>
+#include <string.h>
+#ifdef	PROTECT
+#include <subcalls.h>
+#endif
+#ifndef	SEEK_CUR
+#define	SEEK_SET 0
+#define	SEEK_CUR 1
+#endif
+
+
+/*** New type identifiers ***/
+
+typedef	unsigned char Byte;
+typedef unsigned Word;
+typedef	unsigned long Dword;
 
 
 /*** Manifest constants ***/
 
 #define	TRUE	1
 #define	FALSE	0
-#define	NONE	-1
-#define	RATIO	0.7		/* vertical/horizontal ratio (aspect?) */
+#define	NONE	0xff
+#define	RATIO	0.7		/* vertical/horiz ratio (aspect?) */
 #define	MAXPOINTS 65536/sizeof(int)
+#define	OLD_METHOD	0	/* method codes stored in graph-files */
+#define	COMPACT_METHOD	1
+#define	KNOWN_METHOD	1
+
+#define	ESCAPE	27		/* popular ascii codes */
+
+#define	MOUSE		0x01
+#define	RIGHTBUTTON	0x02
+#define	LEFTBUTTON	0x04	/* our mouse status bit definitions */
+
+#define	MOUSE_EXIT	1	/* our mouse-routine return codes */
+#define	MOUSE_GO	2
 
 
-/*** New type identifiers ***/
+/*** Graphics-related constants & data */
 
-typedef	unsigned char BYTE;
+#define	MAX_MODES	 6	/* maximum supported by program */
+#define	TOTAL_MODES	 3	/* maximum supported by video routines */
+
+#define	TEXT80_EGAH	 0	/* common ega modes (internal mode #s) */
+#define	GRAPH640x350_64	 1
+#define	GRAPH640x350_256 2
+#define	GRAPH640x480_256 3
+#define	GRAPH320x200_4	 4	/* other common graphics mode possibilities */
+#define	GRAPH640x200_2	 5
+#define	GRAPH320x200_16	 6
+#define	GRAPH640x200_16	 7
+#define	TEXT80_EGAM	 8
+
+Byte IBMmode[] = {0x03,		/* use IBMmode[internalmode] for ibm values */
+		  0x10,
+		  0x10,
+		  0x25,
+		  0x04,
+		  0x06,
+		  0x0D,
+		  0x0E,
+		  0x07};
+Byte Videomode = TEXT80_EGAH;	/* used to track internal mode */
+Byte far *Videoaddr = (Byte far *)(0xA0000000l);
+
+#define	MISC_OUT	0x3C2	/* ega external registers */
+Word	Feat_reg =	0x3DA;
+#define	SEQ_ADDR	0x3C4	/* ega sequencer registers */
+#define	SEQ_DATA	0x3C5
+Word	Crt_addr =	0x3D4;	/* ega crt controller registers */
+Word	Crt_data =	0x3D5;
+#define	GR1_POS		0x3CC	/* ega graphics controller registers */
+#define	GR2_POS		0x3CA
+#define	GRC_ADDR	0x3CE
+#define	GRC_DATA	0x3CF
+#define	ATT_CONT	0x3C0	/* ega attribute controller port */
+
+#define	MIN_EGAPORT	0x3B0
+#define	MAX_EGAPORT	0x3DF
 
 
 /*** Global constants ***/
 
 char	*title  = "Mandelbrot Microscope\n";
-char	*ver    = "Version 3.02 by Jeff Parsons  August, 1986\n";
+char	*ver    = "Version 3.10 by Jeff Parsons  March, 1987\n";
 
 double	zero = 0.0;
 
@@ -131,14 +203,23 @@ double	xcenter = -0.75,	/* (x,y) co-ordinates of graph center */
 	ycenter = 0.0,
 	xsize = 3.25,		/* width of image, along x (real) axis */
 	percentage = 100.0,	/* percentage of screen area to use */
+	oldpercentage,
 	yfactor = RATIO;	/* ysize will be (xsize * yfactor)
 				   to compensate for rectangular screen */
 unsigned graphmode = 1,		/* see list of graph mode #'s above */
+	 oldgraphmode,		/* saved by prep_graph */
+	 desiredmode = 0,
 	 maxcount = 250,
 	 colorjump = 0,
-	 uniquecolors = 15;
+	 uniquecolors = 15,
+	 mouse = 0,		/* bits 1&2(+3&4) are right&left buttons */
+	 hmousepos, vmousepos,
+	 hboxpos, vboxpos,	/* all positions are relative to 1 */
+	 hboxend = 0, vboxend = 0;
 
-BYTE	cgapalette = 0,		/* palette code (for CGA modes only) */
+Byte	boxarray[640*2+480*2];	/* enough room for biggest possible box */
+
+Byte	cgapalette = 0,		/* palette code (for CGA modes only) */
 	cgaborder = 0;		/* CGA border (or 1-color graphics color) */
 
 char	*colorlist = NULL,	/* pointer set to color-list, if any */
@@ -148,16 +229,24 @@ char	*colorlist = NULL,	/* pointer set to color-list, if any */
 
 /*** Global calculations ***/
 
-BYTE	egamode = 0,		/* 1=color, 2=enhanced, 3=monochrome, 4=eva */
+Byte	egamode = 0,		/* 1=color, 2=enhanced, 3=monochrome, 4=eva */
 	egasize = 0,		/* # of 64k chunks installed */
 	egabits = 0,		/* ega feature bits */
-	egasets = 0;		/* ega switch settings */
+	egasets = 0,		/* ega switch settings */
+	method = COMPACT_METHOD;
 
-int	oldmode = NONE;		/* mode to restore upon program termination */
+Byte	oldmode = NONE;		/* mode to restore upon program termination */
 
-unsigned vwidth, vheight,	/* width & height of screen in pixels */
-	 hsize, vsize,		/* width & height of image on screen */
-	 hoffset, voffset;
+int	vwidth, vheight,	/* width & height of screen in pixels */
+	hsize, vsize,		/* width & height of image on screen */
+	rheight, rsize,		/* real vertical dimensions */
+	hoffset, voffset,
+	duptotal = 0,
+	dupvalue = 0,		/* values kept for compact data expansion */
+	comptotal = 0,
+	compvalue = 0;		/* values kept for file compression */
+
+long	comppos;		/* if compressing, file position */
 
 double	ysize,			/* height of image (see yfactor) */
 	xgap, ygap;		/* x and y deltas from point to point */
@@ -168,10 +257,15 @@ double	ysize,			/* height of image (see yfactor) */
 FILE	*graphfile = NULL,
 	*imagefile = NULL;
 
-int	vtable[6] = {0x04, 0x06, 0x0D, 0x0E, 0x10, 0x25};
-int	utable[5] = {4, 2, 16, 16, 16};
-char	ktable[8] = {'b', 'u', 'g', 'c', 'r', 'm', 'o', 'w'};
-BYTE	ptable[17] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+Byte	vtable[MAX_MODES] = {GRAPH320x200_4,
+			     GRAPH640x200_2,
+			     GRAPH320x200_16,
+			     GRAPH640x200_16,
+			     GRAPH640x350_256,
+			     GRAPH640x480_256};
+int	utable[MAX_MODES] = {4, 2, 16, 16, 16, 16};	/* unique colors/mode */
+char	ktable[8] = {'B', 'b', 'g', 'c', 'r', 'm', 'o', 'w'};
+Byte	ptable[17] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 		      0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0};
 
 unsigned *screen = NULL;	/* pixel matrix pointer (array of points) */
@@ -196,18 +290,51 @@ struct {unsigned title : 1;
 	unsigned percent : 1;
 	unsigned ratio : 1;
 	unsigned mode : 1;
-	} flags = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	unsigned method : 1;
+	unsigned compact : 1;
+	unsigned dirty : 1;
+	unsigned critical : 1;
+	} flags;
+
+
+/*** External declarations ***/
+
+#ifdef	DOS386
+extern void far pascal ioreq(Word, Word);
+extern void far pascal iofree(Word, Word);
+#else
+#define	ioreq(a,b)
+#define	iofree(a,b)
+#endif
+extern Word far pascal inw(Word);
+extern Byte far pascal inb(Word);
+extern void far pascal outw(Word, Word);
+extern void far pascal outb(Word, Byte);
+extern void far pascal outb2(Word, Byte, Byte);
 
 
 /*** Forward declarations ***/
 
 void	do_title(void);
-int	sig_handler(void);
-int	video_mode(void);
+void	sig_handler(void);
+Byte	video_mode(void);
 void	get_ega(void);
-void	set_video(int);
+void	set_video(Byte);
 void	set_palette(void);
 void	display_type(void);
+
+void	init_mouse(void);
+void	show_mouse(void);
+void	hide_mouse(void);
+int	process_events(void);
+int	mouse_movement(void);
+int	mouse_moved(void);
+int	mouse_leftdown(void);
+int	mouse_leftup(void);
+int	mouse_rightdown(void);
+int	mouse_rightup(void);
+void	draw_box(Byte, Byte);
+void	draw_point(int, int, int *, Byte);
 
 void	get_unknowns(void);
 void	parse_colors(char *);
@@ -216,8 +343,12 @@ void	read_header(void);
 void	write_header(void);
 
 void	prep_graph(void);
+unsigned get_count(void);
+void	put_count(unsigned);
 void	do_graph(void);
-void	plot(int, int, int);
+void	write_point(unsigned, unsigned, int);
+Byte	read_dot(unsigned, unsigned);
+void	write_dot(unsigned, unsigned, Byte);
 
 void	get_switches(int, char **);
 void	help(void);
@@ -226,8 +357,17 @@ void	press_key(void);
 char	inp_char(void);
 int	inp_line(char *, double *);
 
+void	setvideo(Byte);
+void	disable_video(void);
+void	enable_video(void);
+void	setega_extregs(Byte);
+void	setega_seqregs(Byte);
+void	setega_crtregs(Byte);
+void	setega_grcregs(Byte);
+void	setega_attregs(Byte);
 
-main(argc, argv, envp)
+
+void main(argc, argv, envp)
 int	argc;
 char	**argv, **envp;
 {
@@ -240,19 +380,49 @@ char	**argv, **envp;
 		open_graph();		/* try open even if batch */
 	if (colorlist)
 		parse_colors(colorlist);
-	if (flags.create && graphfile)	/* save info in file, if any */
-		write_header();
-	prep_graph();			/* compute graph parameters */
-	if (!flags.nodisp) {
-		set_video(vtable[graphmode-1]);
-		if (colorlist)
-			set_palette();
+	prep_graph();			/* get video parameters for graph */
+	while (TRUE) {
+		if (flags.create && graphfile)	/* save info in file, if any */
+			write_header();
+		if (!flags.nodisp) {
+			flags.dirty = FALSE;
+			/*set_video(vtable[graphmode-1]);*/
+			if (colorlist)
+				set_palette();
+		}
+		while (TRUE) {
+			do_graph();		/* start graphing */
+			if (!flags.create && graphfile) {
+				getc(graphfile);
+				if (!feof(graphfile)) {
+					fseek(graphfile, -1l, SEEK_CUR);
+					flags.dirty = TRUE;
+					read_header();
+					continue;
+				}
+				else {
+					flags.create = TRUE;
+					clearerr(graphfile);
+					fseek(graphfile, 0l, SEEK_CUR);
+				}
+			}
+			break;
+		}
+		if (!flags.nodisp) {
+			init_mouse();
+			clr_kbd();
+			if (!process_events()) {
+				set_video(oldmode);
+				break;
+			}
+		}
+		else
+			break;		/* if not displaying, kick out of loop */
 	}
-	do_graph();			/* start graphing */
-	if (!flags.nodisp) {
-		clr_kbd();
-		getch();
-		set_video(oldmode);
+	if (graphfile) {
+		if (flags.compact)
+			chsize(fileno(graphfile), comppos);
+		fclose(graphfile);
 	}
 	exit(0);			/* then normal exit */
 }
@@ -267,26 +437,40 @@ void do_title()
 }
 
 
-int sig_handler()
+void sig_handler()
 {
-	/*
-	signal(SIGINT, sig_handler);
-	*/
-	if (oldmode != NONE && oldmode != video_mode())
-		set_video(oldmode);
-	fclose(graphfile);
-	fclose(imagefile);
-	_exit(1);
+	if (flags.critical)
+		signal(SIGINT, sig_handler);
+	else {
+		if (oldmode != NONE && oldmode != video_mode())
+			set_video(oldmode);
+		if (graphfile) {
+			if (flags.compact)
+				chsize(fileno(graphfile), comppos);
+			fclose(graphfile);
+		}
+		if (imagefile)
+			fclose(imagefile);
+		_exit(1);
+	}
 }
 
 
-int video_mode()
+Byte video_mode()
 {
+	register Byte i;
 	union REGS regs;
 
+	#ifdef	PROTECT
+	return(Videomode);
+	#else
 	regs.h.ah = 0x0F;	/* video function 0F: get video state */
 	int86(0x10, &regs, &regs);
-	return(regs.h.al);
+	for (i=0; i<sizeof(IBMmode); i++)
+		if (regs.h.al == IBMmode[i])
+			return(i);
+	return(0);
+	#endif
 }
 
 
@@ -297,9 +481,17 @@ void get_ega()
 	register int i;
 	char romstring[6];
 
+	#ifdef	PROTECT
+	regs.h.bl = 3;		/* assume max ega memory */
+	regs.h.bh = 0;		/* assume color mode */
+	regs.h.cl = 0x07;	/* assume these switch settings */
+	regs.h.ch = 0x0F;	/* assume these feature bits */
+	#else
 	regs.h.ah = 0x12;	/* video function 12: alternate fn select */
 	regs.h.bl = 0x10;	/* # to request ega info */
 	int86(0x10, &regs, &regs);
+	#endif
+
 	if (regs.h.bl <= 3 && regs.h.bh <= 1) {
 		egamode = ++regs.h.bh;	/* return ega info */
 		egasize = ++regs.h.bl;	/* in global calculation area */
@@ -317,33 +509,43 @@ void get_ega()
 	if (egamode == 1 && (egasets == 0x08 || egasets == 0x09) ||
 	    egamode == 2)
 		egamode++;	/* adjust egamode to value from 1 to 3 */
-	if (egamode) {
-		romaddr = (char far *)0xC0000076L;
+
+	#ifndef	PROTECT
+	if (egamode) {		/* can do this only in real mode */
+		romaddr = (char far *)0xC0000076l;
 		for (i=0; i<=4; i++)
 			romstring[i] = *romaddr++;
 		romstring[5] = '\0';
 		if (!strcmp(romstring, "Tseng"))
 			egamode += 2;
 	}
-	if (egamode == 1)	/* ega but with rgb monitor */
-		graphmode = 4;
-	else
-	if (egamode >= 2 && egamode <= 3)
-		graphmode = 5;	/* enhanced color can support 640x350 */
-	else {
-		graphmode = 6;	/* Tseng Eva/480 board can support 640x480 */
-		yfactor = 0.75;	/* square pixel, so ratio exactly 480/640 */
-	}
+	#endif
+
+	if (!flags.mode)
+		if (egamode == 1)	/* ega but with rgb monitor */
+			graphmode = 4;
+		else
+		if (egamode >= 2 && egamode <= 3)
+			graphmode = 5;	/* enhanced color supports 640x350 */
+		else {
+			graphmode = 6;	/* Tseng Eva/480 board sports 640x480 */
+			yfactor = 0.75;	/* square pixel, so ratio exactly 480/640 */
+		}
 }
 
 
 void set_video(newmode)
-int	newmode;
+Byte	newmode;
 {
 	union REGS regs;
 
-	regs.x.ax = newmode;	/* video function 00: set video mode */
+	#ifdef	PROTECT
+	setvideo(newmode);
+	Videomode = newmode;
+	#else
+	regs.x.ax = IBMmode[newmode];
 	int86(0x10, &regs, &regs);
+	#endif
 }
 
 
@@ -351,11 +553,13 @@ void set_palette()
 {
 	union REGS regs;
 
+	#ifndef	PROTECT
 	if (egamode) {		/* video function 10/02: set all colors */
 		regs.x.ax = 0x1002;
 		regs.x.dx = (int)ptable;
 		int86(0x10, &regs, &regs);
 	}
+	#endif
 }
 
 
@@ -367,7 +571,7 @@ void display_type()
 	get_ega();
 	if (!flags.batch) {
 		if (!egamode)
-			if (oldmode == 7)
+			if (oldmode == TEXT80_EGAM)
 				p = "Monochrome";
 			else
 				p = "Color w/CGA";
@@ -381,7 +585,7 @@ void display_type()
 			p = "MultiSync w/EVA";
 		else {
 			p = "Unknown [ ]";
-			*(p+9) = '0'+egamode;
+			*(p+9) = (char)('0'+egamode);
 		}
 		do_title();
 		printf("Display type: %s", p);
@@ -389,6 +593,286 @@ void display_type()
 			printf(" (%dk)", egasize*64);
 		printf("\n\n");
 	}
+}
+
+
+void init_mouse()
+{
+	union REGS regs;
+	Dword far *p = (Dword far *)(0x33*4);
+
+	#ifndef	PROTECT
+	if (!*p)
+		return;		/* no mouse vector address */
+	regs.x.ax = 0;
+	int86(0x33, &regs, &regs);
+	if (!regs.x.ax)		/* no mouse driver */
+		return;
+	mouse = MOUSE;		/* assume exists for now */
+	regs.x.ax = 7;		/* set min/max horizontal positions */
+	regs.x.cx = hoffset;
+	regs.x.dx = hoffset+(hsize-3);
+	int86(0x33, &regs, &regs);
+	regs.x.ax = 8;		/* set min/max vertical position */
+	regs.x.cx = voffset;
+	regs.x.dx = voffset+(rsize-3);
+	int86(0x33, &regs, &regs);
+	regs.x.ax = 4;		/* set mouse position */
+	hmousepos = hsize/2;
+	vmousepos = rsize/2;
+	regs.x.cx = hmousepos++ + hoffset;
+	regs.x.dx = vmousepos++ + voffset;
+	int86(0x33, &regs, &regs);
+	show_mouse();
+	#endif
+}
+
+
+void show_mouse()
+{
+	union REGS regs;
+
+	#ifndef	PROTECT
+	regs.x.ax = 1;		/* show mouse pointer now */
+	int86(0x33, &regs, &regs);
+	#endif
+}
+
+
+void hide_mouse()
+{
+	union REGS regs;
+
+	#ifndef	PROTECT
+	regs.x.ax = 2;		/* hide mouse pointer now */
+	int86(0x33, &regs, &regs);
+	#endif
+}
+
+
+int process_events()
+{
+	register int c;
+	union REGS regs;
+
+	while (TRUE) {
+		while (kbhit()) {
+			if ((c=getch()) == ESCAPE)
+				return(FALSE);	/* we're done */
+		}
+		if (mouse) {
+			#ifndef	PROTECT
+			regs.x.ax = 3;		/* get mouse position */
+			int86(0x33, &regs, &regs);
+			c = regs.x.bx;		/* button status */
+			regs.x.cx -= (hoffset-1);
+			regs.x.dx -= (voffset-1);
+			#endif
+			if (c & 0x01) {
+				mouse |= LEFTBUTTON;
+				if (!(mouse & (LEFTBUTTON<<2))) {
+					mouse |= (LEFTBUTTON<<2);
+					mouse_leftdown();
+				}
+			}
+			else {
+				mouse &= ~LEFTBUTTON;
+				if (mouse & (LEFTBUTTON<<2)) {
+					mouse &= ~(LEFTBUTTON<<2);
+					mouse_leftup();
+				}
+			}
+			if (c & 0x02) {
+				mouse |= RIGHTBUTTON;
+				if (!(mouse & (RIGHTBUTTON<<2))) {
+					mouse |= (RIGHTBUTTON<<2);
+					c = mouse_rightdown();
+					if (c == MOUSE_EXIT)
+						return(FALSE);
+					else if (c == MOUSE_GO)
+						return(TRUE);
+				}
+			}
+			else {
+				mouse &= ~RIGHTBUTTON;
+				if (mouse & (RIGHTBUTTON<<2)) {
+					mouse &= ~(RIGHTBUTTON<<2);
+					mouse_rightup();
+				}
+			}
+			if (regs.x.cx != hmousepos || regs.x.dx != vmousepos) {
+				hmousepos = regs.x.cx;
+				vmousepos = regs.x.dx;
+				mouse_moved();
+			}
+		}
+	}
+}
+
+
+int mouse_movement()
+{
+	union REGS regs;
+
+	#ifndef	PROTECT
+	regs.x.ax = 3;		/* check mouse position */
+	int86(0x33, &regs, &regs);
+	regs.x.cx -= (hoffset-1);
+	regs.x.dx -= (voffset-1);
+	if (regs.x.bx & 0x01)	/* if left button still down */
+		if (regs.x.cx != hmousepos || regs.x.dx != vmousepos)
+			return(TRUE);
+	#endif
+	return(FALSE);
+}
+
+
+int mouse_moved()
+{
+	if (mouse & LEFTBUTTON) {	/* if left button still down */
+		draw_box(FALSE, 4);	/* erase any previous box */
+		hboxend = hmousepos;
+		vboxend = vmousepos;	/* define endpoints as new position */
+		if (abs(hboxend-hboxpos) < 2)
+			if (hboxend >= hboxpos)
+				hboxend = hboxpos + 2;
+			else
+				hboxend = hboxpos - 2;
+		if (abs(vboxend-vboxpos) < 2)
+			if (vboxend >= vboxpos)
+				vboxend = vboxpos + 2;
+			else
+				vboxend = vboxpos - 2;
+		draw_box(TRUE, 4);	/* redraw a box */
+	}
+	return(0);
+}
+
+
+int mouse_leftdown()
+{
+	draw_box(FALSE, 4);	/* erase any previous box */
+	hboxpos = hmousepos;	/* denoted by nonzero endpoints */
+	vboxpos = vmousepos;	/* then record new beginpoints (upper-left) */
+	hboxend = 0;
+	vboxend = 0;		/* so that erase will know there's nothing */
+	return(mouse_moved());
+}
+
+
+int mouse_leftup()
+{
+	return(0);
+}
+
+
+int mouse_rightdown()
+{
+	register int newsize, newcenter;
+
+	if (hboxend == 0)
+		return(MOUSE_EXIT);
+	else {			/* compute new boundaries and width */
+		newsize = abs(hboxend-hboxpos);
+		if (hboxpos <= hboxend)
+			newcenter = hboxpos + newsize/2;
+		else
+			newcenter = hboxend + newsize/2;
+		xcenter += (newcenter - hsize/2) * xgap;
+		newsize = abs(vboxend-vboxpos);
+		if (vboxpos <= vboxend)
+			newcenter = vboxpos + newsize/2;
+		else
+			newcenter = vboxend + newsize/2;
+		ycenter += (vsize/2 - newcenter) * ygap;
+		xsize = (xsize * abs(hboxend-hboxpos)) / hsize;
+		hboxend = 0;
+		vboxend = 0;
+		return(MOUSE_GO);
+	}
+}
+
+
+int mouse_rightup()
+{
+	return(0);
+}
+
+
+void draw_box(draw, sides)
+Byte draw, sides;
+{
+	int b=0;
+	register int xi, yi;
+
+	if (!draw)
+		if (hboxend == 0 || vboxend == 0)
+			return;
+	hide_mouse();
+	if (hboxpos <= hboxend)
+		for (xi=hboxpos,yi=vboxpos; xi<=hboxend; xi++)
+			draw_point(xi, yi, &b, draw);
+	else
+		for (xi=hboxpos,yi=vboxpos; xi>=hboxend; xi--)
+			draw_point(xi, yi, &b, draw);
+	if (!--sides) {
+		hboxend = 0;
+		goto end;
+	}
+	if (draw && mouse_movement()) {
+		draw_box(FALSE, 1);
+		goto end;
+	}
+	if (vboxpos <= vboxend)
+		for (xi=hboxend,yi=vboxpos+1; yi<=vboxend; yi++)
+			draw_point(xi, yi, &b, draw);
+	else
+		for (xi=hboxend,yi=vboxpos-1; yi>=vboxend; yi--)
+			draw_point(xi, yi, &b, draw);
+	if (!--sides) {
+		hboxend = 0;
+		goto end;
+	}
+	if (draw && mouse_movement()) {
+		draw_box(FALSE, 2);
+		goto end;
+	}
+	if (hboxpos <= hboxend)
+		for (xi=hboxend-1,yi=vboxend; xi>=hboxpos; xi--)
+			draw_point(xi, yi, &b, draw);
+	else
+		for (xi=hboxend+1,yi=vboxend; xi<=hboxpos; xi++)
+			draw_point(xi, yi, &b, draw);
+	if (!--sides) {
+		hboxend = 0;
+		goto end;
+	}
+	if (draw && mouse_movement()) {
+		draw_box(FALSE, 3);
+		goto end;
+	}
+	if (vboxpos <= vboxend)
+		for (xi=hboxpos,yi=vboxend-1; yi>vboxpos; yi--)
+			draw_point(xi, yi, &b, draw);
+	else
+		for (xi=hboxpos,yi=vboxend+1; yi<vboxpos; yi++)
+			draw_point(xi, yi, &b, draw);
+end:
+	show_mouse();
+}
+
+
+void draw_point(xi, yi, b, draw)
+register int xi, yi;
+int *b;
+Byte draw;
+{
+	if (!draw)
+		write_dot(xi, yi, boxarray[(*b)++]);
+	else if ((boxarray[(*b)++] = read_dot(xi, yi)) == 0x0f)
+		write_dot(xi, yi, 0x00);
+	else
+		write_dot(xi, yi, 0x0f);
 }
 
 
@@ -452,7 +936,7 @@ Display modes supported....\n\
 Select one of these display modes [%u]: ", graphmode);
 		if (!(flags.mode = inp_line("%u", (double *)&graphmode)==1))
 			break;
-		else if (graphmode == 0 || graphmode > 6)
+		else if (graphmode == 0 || graphmode > MAX_MODES)
 			flags.mode = FALSE;
 	}
 }
@@ -461,7 +945,7 @@ Select one of these display modes [%u]: ", graphmode);
 void parse_colors(s)
 char *s;
 {
-	BYTE error = FALSE;
+	Byte error = FALSE;
 	register int p, p2, i;
 
 	p = 0;
@@ -496,13 +980,13 @@ char *s;
 					break;
 				}
 				ptable[p2] = ptable[p2+2] =
-				ptable[p2+8] = ptable[p2+10] = i;
+				ptable[p2+8] = ptable[p2+10] = (Byte)i;
 			}
 			else if (p == 16)
-				ptable[p] = i;
+				ptable[p] = (Byte)i;
 		}
 		else
-			ptable[p] = i;
+			ptable[p] = (Byte)i;
 		p++;
 	}
 	if (error) {
@@ -602,9 +1086,11 @@ void read_header()
 {
 	unsigned i;
 
+	if (flags.mode)
+		desiredmode = graphmode;
 	fread((char *)&graphmode, sizeof(graphmode), 1, graphfile);
-	cgapalette = getc(graphfile);
-	cgaborder = getc(graphfile);
+	cgapalette = (Byte)fgetc(graphfile);
+	cgaborder = (Byte)fgetc(graphfile);
 	fread((char *)&xcenter, sizeof(xcenter), 1, graphfile);
 	fread((char *)&ycenter, sizeof(ycenter), 1, graphfile);
 	fread((char *)&xsize, sizeof(xsize), 1, graphfile);
@@ -618,13 +1104,22 @@ void read_header()
 		colorjump = i;
 	fread((char *)&uniquecolors, sizeof(uniquecolors), 1, graphfile);
 	fread((char *)ptable, sizeof(ptable), 1, graphfile);
-	getc(graphfile);		/* method-code + extra-bytes */
+	i = fgetc(graphfile);		/* method-code + extra-bytes */
+	if (i == OLD_METHOD && flags.method && method == COMPACT_METHOD) {
+		flags.compact = TRUE;
+		fseek(graphfile, -1l, SEEK_CUR);
+		fputc(method, graphfile);
+		fseek(graphfile, 0l, SEEK_CUR);
+	}
+	method = (Byte)i;
 	fread((char *)&i, sizeof(i), 1, graphfile);
+	if (flags.compact)		/* save position at end of header */
+		comppos = ftell(graphfile);
 
 	flags.mode = flags.x = flags.y = flags.size =
 		flags.percent = flags.ratio = flags.count = TRUE;
 
-	if (!flags.batch) {
+	if (!flags.batch && !flags.dirty) {
 		printf("Graph mode: %u\n", graphmode);
 		printf("Center x: %f\n", xcenter);
 		printf("Center y: %f\n", ycenter);
@@ -632,7 +1127,16 @@ void read_header()
 		printf("Percentage: %f\n", percentage);
 		printf("Ratio: %f\n", yfactor);
 		printf("Max iterations: %u\n", maxcount);
+		printf("File format: ");
+		if (method == COMPACT_METHOD)
+			printf("Compressed\n");
+		else
+			printf("Uncompressed\n");
 		press_key();
+	}
+	if (method > KNOWN_METHOD) {
+		printf("Extended header unknown to this version\n");
+		exit(2);
 	}
 }
 
@@ -641,20 +1145,22 @@ void write_header()
 {
 	int i = 0;
 
-	fwrite((char *)&graphmode, sizeof(graphmode), 1, graphfile);
-	putc((int)cgapalette, graphfile);
-	putc((int)cgaborder, graphfile);
+	flags.critical = TRUE;
+	fwrite((char *)&oldgraphmode, sizeof(oldgraphmode), 1, graphfile);
+	putc(cgapalette, graphfile);
+	putc(cgaborder, graphfile);
 	fwrite((char *)&xcenter, sizeof(xcenter), 1, graphfile);
 	fwrite((char *)&ycenter, sizeof(ycenter), 1, graphfile);
 	fwrite((char *)&xsize, sizeof(xsize), 1, graphfile);
-	fwrite((char *)&percentage, sizeof(percentage), 1, graphfile);
+	fwrite((char *)&oldpercentage, sizeof(oldpercentage), 1, graphfile);
 	fwrite((char *)&yfactor, sizeof(yfactor), 1, graphfile);
 	fwrite((char *)&maxcount, sizeof(maxcount), 1, graphfile);
 	fwrite((char *)&colorjump, sizeof(colorjump), 1, graphfile);
 	fwrite((char *)&uniquecolors, sizeof(uniquecolors), 1, graphfile);
 	fwrite((char *)ptable, sizeof(ptable), 1, graphfile);
-	putc(0, graphfile);		/* method-code + extra-bytes */
+	putc(method, graphfile);	/* method-code + extra-bytes */
 	fwrite((char *)&i, sizeof(i), 1, graphfile);
+	flags.critical = FALSE;
 }
 
 
@@ -662,16 +1168,17 @@ void prep_graph()
 {
 	int i;
 
+	oldgraphmode = graphmode;	/* save graphmode asked for */
 	if (flags.nodisp)
 		printf("\nComputing now...\n");
 	else {
-		if (oldmode == 7) {
+		if (oldmode == TEXT80_EGAM) {
 			if (!egamode) {
 				flags.nodisp = TRUE;
 				printf("\nNo CGA, display inhibited\n");
 			}
 			else
-				for (i=0; i<5; i++)
+				for (i=0; i<MAX_MODES; i++)
 					vtable[i] = 0x0F;
 		}
 		else if (graphmode >= 3 && !egamode) {
@@ -684,29 +1191,41 @@ void prep_graph()
 				flags.alternate = TRUE;
 			}
 		}
-		else if (graphmode >= 5 && egamode == 1) {
+		else if (graphmode == 5 && egamode == 1 || desiredmode == 4) {
 			graphmode = 4;
 			flags.alternate = TRUE;
 		}
+		else if (graphmode == 6 && egamode != 4 || desiredmode == 5) {
+			graphmode = 5;
+			flags.alternate = TRUE;
+		}
 	}
-
 	vwidth = 640;
 	vheight = 200;
+	rheight = vheight;
 	if (graphmode == 1 || graphmode == 3)
 		vwidth = 320;
-	else if (graphmode == 6)
-		vheight = 480;
-	else if (flags.alternate || graphmode == 5)
+	else if (graphmode < 5 && flags.alternate)
 		vheight = 350;
-
+	else if (graphmode < 6 && flags.alternate) {
+		vheight = 480;
+		rheight = 350;
+	}
+	else if (graphmode == 5) {
+		vheight = 350;
+		rheight = vheight;
+	}
+	else if (graphmode == 6) {
+		vheight = 480;
+		rheight = vheight;
+	}
+	oldpercentage = percentage;
 	percentage = sqrt(percentage/100.0);
-	hsize = vwidth * percentage;
-	vsize = vheight * percentage;
+	hsize = (int)(vwidth * percentage);
+	vsize = (int)(vheight * percentage);
+	rsize = (int)(rheight * percentage);
 	hoffset = (vwidth - hsize)/2;
-	voffset = (vheight - vsize)/2;
-
-	xgap = xsize / hsize;
-	ygap = (ysize = xsize * yfactor) / vsize;
+	voffset = (rheight - rsize)/2;
 
 	if (!colorjump)
 		colorjump++;
@@ -717,144 +1236,291 @@ void prep_graph()
 }
 
 
+unsigned get_count()
+{
+	register unsigned c1, c2;
+
+	if (!graphfile || flags.create)
+		return(0);
+	if (duptotal == 0) {
+		/* if (!fread((char *)&count, sizeof(count), 1, graphfile)) { */
+		if (!feof(graphfile))
+			c1 = getc(graphfile);
+		if (!feof(graphfile))
+			c2 = getc(graphfile);
+		else {
+			flags.create = TRUE;
+			clearerr(graphfile);
+			if (flags.compact)
+				fseek(graphfile, comppos, SEEK_SET);
+			else
+				fseek(graphfile, 0l, SEEK_CUR);
+			return(dupvalue = 0);
+		}
+		if (method == OLD_METHOD)
+			return(c1 + (c2 << 8));
+		else {		/* assume method must be compact */
+			duptotal = --c1;
+			if (c2 != 0xff)
+				return(dupvalue = c2);
+			else
+				return(dupvalue = maxcount);
+		}
+	}
+	else {
+		duptotal--;
+		return(dupvalue);
+	}
+}
+
+
+void put_count(count)
+unsigned count;
+{
+	long l;
+	unsigned c;
+
+	if (graphfile)
+		if (flags.create)
+			if (method == OLD_METHOD)
+				fwrite((char *)&count, sizeof(count), 1, graphfile);
+			else {		/* assume method must be compact */
+				if (dupvalue == 0)
+					dupvalue = count;
+				if (dupvalue != count || duptotal == 0xff) {
+					if (dupvalue >= maxcount && maxcount >= 0xff)
+						c = 0xff;
+					else
+						c = ((--dupvalue) % (0xfe) + 1);
+					c = (c << 8) + duptotal;
+					fwrite((char *)&c, sizeof(c), 1, graphfile);
+					dupvalue = count;
+					duptotal = 0;
+				}
+				duptotal++;
+			}
+		else if (flags.compact) {
+			if (compvalue == 0)
+				compvalue = count;
+			if (compvalue != count || comptotal == 0xff) {
+				if (compvalue >= maxcount && maxcount >= 0xff)
+					c = 0xff;
+				else
+					c = ((--compvalue) % (0xfe) + 1);
+				c = (c << 8) + comptotal;
+				l = ftell(graphfile);
+				fseek(graphfile, comppos, SEEK_SET);
+				fwrite((char *)&c, sizeof(c), 1, graphfile);
+				comppos += sizeof(c);
+				fseek(graphfile, l, SEEK_SET);
+				compvalue = count;
+				comptotal = 0;
+			}
+			comptotal++;
+		}
+}
+
+
 void do_graph()
 {
-	int xi, yi, count;
+	unsigned yi, c;
+	register unsigned xi, count;
 	double x, y, xcorner, ycorner;
 	double step, stepinc;
 	double a, b, ta, tb, m;
 
+	#ifdef	PROTECT
+	struct PhysBufData vpb;
+
+	debug();
+	vpb.buf_start = (Dword)Videoaddr;
+	vpb.buf_length = 65536l;
+	VIOGETPHYSBUF (&vpb, 0);
+	Videoaddr = (Byte far *)((long)vpb.selectors[0] * 10000l);
+	#endif
+
+	xgap = xsize / hsize;
+	ygap = (ysize = xsize * yfactor) / vsize;
 	xcorner = xcenter - xsize/2.0;
 	ycorner = ycenter + ysize/2.0;
 	step = stepinc = vsize / 79.0;
 	y = ycorner;
 	for (yi = 1;  yi <= vsize;  yi++) {
+		#ifdef	FASTX
 		x = xcorner;
+		#endif
 		for (xi = 1;  xi <= hsize;  xi++) {
-			if (xi % 8 == 0)
-				if (kbhit())
-					;
-			if (graphfile && !flags.create) {
-				if (!fread((char *)&count,
-				     sizeof(count), 1, graphfile)) {
-					count = 0;
-					flags.create = TRUE;
-					clearerr(graphfile);
-					fseek(graphfile, 0l, SEEK_CUR);
-				}
-			}
-			else
-				count = 0;
-			if (!count) {
+			count = get_count();
+			if (!count) {	/* where 95% of the time goes... */
+				#ifndef	FASTX
+				x = xcorner + (xi-1)*xgap;
+				#endif
+				if ((xi & 0x0f) == 0)
+					if (kbhit())
+						;
+				c = xi;	/* save register value */
+				xi = maxcount;
 				a = b = ta = tb = m = zero;
-				while (count++ < maxcount && m < 4.0) {
+				while (count++ < xi && m < 4.0) {
 					b = 2*a*b + y;
 					a = ta-tb + x;
 					m = (ta = a*a) + (tb = b*b);
 				}
+				xi = c;	/* restore register variable */
 				count--;
-			}
-			if (!flags.nodisp)
-				plot(xi, yi, count);
-			if (graphfile && flags.create)
-				fwrite((char *)&count,
-					sizeof(count), 1, graphfile);
+			}		/* therefore, optimize properly... */
+			else if ((xi & 0x7f) == 0)
+				if (kbhit())
+					;
+			#ifdef	FASTX
 			x += xgap;
+			#endif
+			if (!flags.nodisp)
+				write_point(xi, yi, count);
+			put_count(count);
 		}
 		y -= ygap;
 		if (flags.nodisp)
-			while (yi >= step) {
+			while (yi >= (unsigned)step) {
 				printf("*");
 				step += stepinc;
 			}
-
+	}
+	if (method != OLD_METHOD) {
+		put_count(0xffff);	/* a way to flush dup data */
+		dupvalue = 0;
+		duptotal = 0;		/* clear the dup variables now */
 	}
 }
 
 
-void plot(xi, yi, count)
-int xi, yi, count;
+void write_point(xi, yi, count)
+register unsigned xi;
+unsigned yi;
+int count;
 {
-	BYTE mask, color, i;
-	BYTE far *addr;
+	register Byte color, i;
 	union REGS regs;
+	static Byte far *addr;
+	static int lastxi = -2, lastyi = 0;
+	static Byte lastcolor, lastmask = 0;
+	static Byte mask[] = {0x80, 0x40, 0x20, 0x10,
+					0x08, 0x04, 0x02, 0x01};
 
 	if (flags.alternate)
-		if ( !(yi % 2) )
-			return;
-		else
-			yi = (++yi / 2);
+		if (graphmode < 5) {
+			if ( !(yi & 0x01) )
+				return;
+			else
+				yi -= yi/2;
+		}
+		else {
+			if ( !(yi & 0x03) )
+				return;
+			else {
+				yi -= yi/4;
+				if (yi > rsize)
+					return;
+			}
+		}
 	if (count >= maxcount)
 		color = 0;
 	else {
-		count = (--count)/colorjump + 1;
-		color = (--count)%uniquecolors + 1;
+		if (colorjump > 1)
+			count = (--count)/colorjump + 1;
+		color = (Byte)((--count)%uniquecolors + 1);
 		if (graphmode == 5 && egasize == 1)
-			if (color >= 2)	/* for 64kb ega mode... */
+			if (color >= 2)		/* for 64kb ega mode... */
 				color += 2;	/* palette mapping differs */
 	}
 	yi = --yi+voffset;
 	xi = --xi+hoffset;
-	while (TRUE) {
-		regs.h.al = color;
-		if (graphmode == 99) {
-			addr = (BYTE far *)(0xA0000000l + yi*80 + xi/8);
-			switch (xi % 8) {
-			case 0:
-				mask = 0x80;
-				break;
-			case 1:
-				mask = 0x40;
-				break;
-			case 2:
-				mask = 0x20;
-				break;
-			case 3:
-				mask = 0x10;
-				break;
-			case 4:
-				mask = 0x08;
-				break;
-			case 5:
-				mask = 0x04;
-				break;
-			case 6:
-				mask = 0x02;
-				break;
-			case 7:
-				mask = 0x01;
-				break;
+	    /* for ega modes, blast directly to ram */
+	#ifndef	PROTECT
+	if (graphmode == 5 && egasize > 1 || graphmode == 6) {
+	#endif
+	    /* recompute byte address if pixel not sequential */
+		if (xi != ++lastxi || yi != lastyi)
+		    if (xi != 0 || yi != ++lastyi)
+			addr = Videoaddr + (yi*80) + xi/8;
+	    /* if a change in color has occurred, flush old color */
+		if (color != lastcolor && (lastmask || flags.dirty)) {
+			outb2(GRC_ADDR, 8, lastmask);
+			if (flags.dirty) {
+				outb2(SEQ_ADDR, 2, 0x0f);
+				i = *addr;
+				*addr = 0;
 			}
-			outp(0x3CE, 8);		/* select bit mask register */
-			outp(0x3CF, mask);	/* store it */
-			i = *addr;
-			*addr = 0;		/* this sets bit-masked bits to 0 */
-			outp(0x3C4, 2);		/* select map mask register 2 */
-			outp(0x3C5, regs.h.al);
-			i = *addr;
-			*addr = 0xFF;		/* set bits in enabled planes */
+			outb2(SEQ_ADDR, 2, lastcolor);
+			lastcolor = *addr;
+			*addr = 0xFF;	/* set bits in enabled planes */
+			lastmask = 0;	/* all bits flushed */
 		}
-		else {
-			regs.h.ah = 0x0C;	/* write-dot function # */
-			regs.h.bh = 0;		/* page # */
-			regs.x.cx = xi;		/* column */
-			regs.x.dx = yi;		/* and row, both relative to 0 */
-			int86(0x10, &regs, &regs);
+	    /* now record the current color and bit position */
+		if (lastcolor = color)
+			lastmask |= mask[xi & 0x07];
+	    /* if last pixel this byte, or last pixel this line, flush */
+		if ((xi & 0x07) == 0x07 || xi == hsize+hoffset-1) {
+			outb2(GRC_ADDR, 8, lastmask);
+			if (flags.dirty) {
+				outb2(SEQ_ADDR, 2, 0x0f);
+				i = *addr;
+				*addr = 0;
+			}
+			outb2(SEQ_ADDR, 2, color);
+			color = *addr;	/* latch all unmasked bits */
+			*addr = 0xFF;	/* set bits in enabled planes */
+			lastmask = 0;	/* all bits flushed */
+			addr++;		/* adjust address every 8 pixels */
 		}
-		if (!flags.debug)
-			break;
-		regs.h.ah = 0x02;	/* video function 02: set cursor position */
-		regs.h.dh = 20;		/* row */
-		regs.h.dl = 0;		/* column */
-		regs.h.bh = 0;		/* page */
-		int86(0x10, &regs, &regs);
-		printf("Position: %3u,%3u    Color: %2u", xi,yi,(unsigned)color);
-		regs.h.ah = 0;		/* wait for a key */
-		int86(0x16, &regs, &regs);
-		if (regs.h.al == ' ')
-			break;
-		color = ++color & 0x0F;
+	    /* record current coordinates to verify next pixel sequential */
+		lastxi = xi;
+		lastyi = yi;
+	#ifndef	PROTECT
 	}
+	else {			/* use bios function otherwise */
+		regs.h.al = color;	/* SORRY GUYS! */
+		regs.h.ah = 0x0C;	/* write-dot function # */
+		regs.h.bh = 0;		/* page # */
+		regs.x.cx = xi;		/* column */
+		regs.x.dx = yi;		/* and row, both relative to 0 */
+		int86(0x10, &regs, &regs);
+	}
+	#endif
+}
+
+
+Byte read_dot(xi, yi)
+unsigned xi, yi;
+{
+	union REGS regs;
+
+	#ifndef	PROTECT
+	regs.h.ah = 0x0D;	/* read-dot function # */
+	regs.h.bh = 0;		/* page # */
+	regs.x.cx = --xi+hoffset;	/* column */
+	regs.x.dx = --yi+voffset;	/* and row, both relative to 0 */
+	int86(0x10, &regs, &regs);
+	#endif
+	return(regs.h.al);	/* return color */
+}
+
+
+void write_dot(xi, yi, color)
+register unsigned xi, yi;
+Byte color;
+{
+	union REGS regs;
+
+	#ifndef	PROTECT
+	regs.h.ah = 0x0C;	/* write-dot function # */
+	regs.h.al = color;
+	regs.h.bh = 0;		/* page # */
+	regs.x.cx = --xi+hoffset;	/* column */
+	regs.x.dx = --yi+voffset;	/* and row, both relative to 0 */
+	int86(0x10, &regs, &regs);
+	return;
+	#endif
 }
 
 
@@ -869,6 +1535,7 @@ char	**tbladr;
 			(*tbladr)++;		/* past switch char */
 			switch (tolower(*(*tbladr)++)) {
 			case 'h':		/* past 1st letter now */
+			case '?':
 				flags.help = TRUE;
 				help();
 				if (total > 1) {
@@ -950,6 +1617,10 @@ char	**tbladr;
 				flags.count = TRUE;
 				maxcount = atoi(*tbladr);
 				break;
+			case 'f':
+				flags.method = TRUE;
+				method = (Byte)atoi(*tbladr);
+				break;
 			default:
 				do_title();
 				fprintf(stderr,
@@ -977,25 +1648,29 @@ char	**tbladr;
 void help()
 {
 	do_title();
-	fputs("\
+	puts("\
 Usage:    mbrot [graph-file] [options...]\n\n\
 Options:  -h	list usage and options\n\
 	  -b	select batch-mode operation\n\
 	  -n	inhibit display during computation\n\
-	  -t	display computation time/statistics\n\
+	  -k...	defines colors (ie, B1b1g1c1r1m1o1w1)\n\
+	  -j#	defines color granularity\n\
 	  -c	create graph-file (default is restore)\n\
-	  -cu	create graph-file unconditionally\n\
-	  -ifn	add graph to image-library-file fn\n", stdout);
-	fputs("\
-	  -v	pause after each frame of image-library\n\
+	  -cu	create graph-file unconditionally\n");
+	puts("\
 	  -x#.#	set x(real) co-ordinate of center\n\
 	  -y#.#	set y(imaginary) co-ordinate of center\n\
 	  -w#.#	set width(real) of graph\n\
 	  -p#	set percentage of screen to be used\n\
 	  -r#.#	set vertical/horizontal ratio\n\
 	  -g#	select graphics mode #\n\
-	  -m#	specify maximum iterations per pixel\n\
-	  -s	specify standard algorithm (non-recursive)\n", stdout);
+	  -m#	specify maximum iterations per pixel\n");
+#ifdef	COMPLETE
+	puts("\
+	  -ifn	add graph to image-library-file fn\n\
+	  -v	pause after each frame of image-library\n\
+	  -s	specify standard algorithm (non-recursive)\n");
+#endif
 }
 
 
@@ -1024,9 +1699,9 @@ void press_key()
 
 char inp_char()
 {
-	char	c;
+	char c;
 
-	c = tolower(getche());
+	c = (char)tolower(getche());
 	putchar('\n');
 	return(c);
 }
@@ -1041,5 +1716,156 @@ double	*arg1;
 	if (!gets(line))
 		exit(0);
 	return(sscanf(line, fmt, arg1));
+}
+
+
+void setvideo(m)
+register Byte m;
+{
+	if (m >= TOTAL_MODES)
+		m = TOTAL_MODES - 1;
+	disable_video();
+	setega_extregs(m);
+	setega_seqregs(m);
+	setega_crtregs(m);
+	setega_grcregs(m);
+	setega_attregs(m);
+	enable_video();
+}
+
+
+void disable_video()
+{
+	outb(ATT_CONT, 0x00);
+}
+
+
+void enable_video()
+{
+	outb(ATT_CONT, 0x20);
+}
+
+
+void setega_extregs(m)
+register Byte m;
+{
+	static Byte miscs[] = {0xA7, 0xA7, 0xA7};
+	static Byte feats[] = {0x00, 0x00, 0x00};
+
+	outb(MISC_OUT, miscs[m]);
+	outb(Feat_reg, feats[m]);
+}
+
+
+void setega_seqregs(m)
+register Byte m;
+{
+	register int i;
+	static Word resets[]   = {0x0300, 0x0300, 0x0300};
+	static Word clkmodes[] = {0x0101, 0x0501, 0x0101};
+	static Word mapmasks[] = {0x0302, 0x0F02, 0x0F02};
+	static Word charmaps[] = {0x0003, 0x0003, 0x0003};
+	static Word memmodes[] = {0x0304, 0x0004, 0x0604};
+	static Word *regs[] = {resets, clkmodes,
+				mapmasks, charmaps, memmodes};
+
+	for (i=0; i<sizeof(regs)/sizeof(Word *); i++)
+		outw(SEQ_ADDR, (regs[i])[m]);
+}
+
+
+void setega_crtregs(m)
+register Byte m;
+{
+	register int i;
+	static Word htotals[]  = {0x5B00, 0x5B00, 0x5B00};
+	static Word hdspends[] = {0x4F01, 0x4F01, 0x4F01};
+	static Word hsblanks[] = {0x5302, 0x5302, 0x5302};
+	static Word heblanks[] = {0x3703, 0x1703, 0x3703};
+	static Word hsretrcs[] = {0x5104, 0x5004, 0x5204};
+	static Word heretrcs[] = {0x5B05, 0xBA05, 0x0005};
+	static Word vtotals[]  = {0x6C06, 0x6C06, 0x6C06};
+	static Word crtovfls[] = {0x1F07, 0x1F07, 0x1F07};
+	static Word presets[]  = {0x0008, 0x0008, 0x0008};
+	static Word maxscans[] = {0x0D09, 0x0009, 0x0009};
+	static Word cstarts[]  = {0x0B0A, 0x000A, 0x000A};
+	static Word curends[]  = {0x0C0B, 0x000B, 0x000B};
+	static Word hiaddrs[]  = {0x000C, 0x000C, 0x000C};
+	static Word loaddrs[]  = {0x000D, 0x000D, 0x000D};
+	static Word chiaddrs[] = {0x000E, 0x000E, 0x000E};
+	static Word cloaddrs[] = {0x000F, 0x000F, 0x000F};
+	static Word vsretrcs[] = {0x5E10, 0x5E10, 0x5E10};
+	static Word veretrcs[] = {0x2B11, 0x2B11, 0x2B11};
+	static Word vdspends[] = {0x5D12, 0x5D12, 0x5D12};
+	static Word offsets[]  = {0x2813, 0x1413, 0x2813};
+	static Word undlocs[]  = {0x0F14, 0x0F14, 0x0F14};
+	static Word vsblanks[] = {0x5E15, 0x5F15, 0x5F15};
+	static Word veblanks[] = {0x0A16, 0x0A16, 0x0A16};
+	static Word modctrls[] = {0xA317, 0x8B17, 0xE317};
+	static Word lincomps[] = {0xFF18, 0xFF18, 0xFF18};
+	static Word *regs[] = {htotals, hdspends, hsblanks, heblanks,
+				hsretrcs, heretrcs, vtotals, crtovfls,
+				presets, maxscans, cstarts, curends,
+				hiaddrs, loaddrs, chiaddrs, cloaddrs,
+				vsretrcs, veretrcs, vdspends, offsets,
+				undlocs, vsblanks, veblanks, modctrls,
+				lincomps};
+
+	for (i=0; i<sizeof(regs)/sizeof(Word *); i++)
+		outw(Crt_addr, (regs[i])[m]);
+}
+
+
+void setega_grcregs(m)
+register Byte m;
+{
+	register int i;
+	static Word moderegs[] = {0x1005, 0x1005, 0x0005};
+	static Word miscs[]    = {0x0E06, 0x0706, 0x0506};
+	static Word nocares[]  = {0x0007, 0x0F07, 0x0F07};
+	static Word bitmasks[] = {0xFF08, 0xFF08, 0xFF08};
+	static Word *regs[] = {moderegs, miscs, nocares, bitmasks};
+
+	outb(GR1_POS, 0);
+	outb(GR2_POS, 1);
+	for (i=0; i<=4; i++)
+		outw(GRC_ADDR, i);
+	for (i=0; i<sizeof(regs)/sizeof(Word *); i++)
+		outw(GRC_ADDR, (regs[i])[m]);
+}
+
+
+void setega_attregs(m)
+register Byte m;
+{
+	register int i;
+	static Byte att0s[]    = {0x00, 0x00, 0x00};
+	static Byte att1s[]    = {0x01, 0x01, 0x01};
+	static Byte att2s[]    = {0x02, 0x00, 0x02};
+	static Byte att3s[]    = {0x03, 0x00, 0x03};
+	static Byte att4s[]    = {0x04, 0x04, 0x04};
+	static Byte att5s[]    = {0x05, 0x07, 0x05};
+	static Byte att6s[]    = {0x14, 0x00, 0x06};
+	static Byte att7s[]    = {0x07, 0x00, 0x07};
+	static Byte att8s[]    = {0x38, 0x00, 0x38};
+	static Byte att9s[]    = {0x39, 0x01, 0x39};
+	static Byte attas[]    = {0x3A, 0x00, 0x3A};
+	static Byte attbs[]    = {0x3B, 0x00, 0x3B};
+	static Byte attcs[]    = {0x3C, 0x04, 0x3C};
+	static Byte attds[]    = {0x3D, 0x07, 0x3D};
+	static Byte attes[]    = {0x3E, 0x00, 0x3E};
+	static Byte attfs[]    = {0x3F, 0x00, 0x3F};
+	static Byte modctrls[] = {0x08, 0x0B, 0x01};
+	static Byte overscns[] = {0x00, 0x00, 0x00};
+	static Byte planes[]   = {0x0F, 0x05, 0x0F};
+	static Byte hpans[]    = {0x00, 0x00, 0x00};
+	static Byte *regs[] = {att0s, att1s, att2s, att3s,
+				att4s, att5s, att6s, att7s,
+				att8s, att9s, attas, attbs,
+				attcs, attds, attes, attfs,
+				modctrls, overscns, planes, hpans};
+
+	for (i=0; i<sizeof(regs)/sizeof(Word *); i++)
+		outb2(ATT_CONT, (Byte)i, (regs[i])[m]);
 }
 
