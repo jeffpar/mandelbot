@@ -99,7 +99,9 @@ tools listed in [package.json](package.json) using the Node Package Manager:
 Inspiration
 -----------
 
-[Scientific American, August 1985: Exploring the Mandelbrot Set](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf) by A. K. Dewdney.
+[Scientific American, August 1985: Exploring the Mandelbrot Set](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
+
+> "Computer Recreations: A computer microscope zooms in for a look at the most complex object in mathematics" by A. K. Dewdney.
 
 Perspiration
 ------------
