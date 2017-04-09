@@ -60,7 +60,7 @@ class Viewport {
         if (idStatus) {
             this.status = document.getElementById(idStatus);
             if (this.status) {
-                this.status.innerHTML = "This is a static image. Dynamic images coming soon.";   // new BigNumber(42).toString();
+                this.status.innerHTML = "Interactive images coming soon.";   // new BigNumber(42).toString();
             }
         }
     }
