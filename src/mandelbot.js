@@ -120,7 +120,7 @@ class Viewport {
             let xLeft = this.x - this.r/2;
             let xInc = this.r / this.cxGrid;
             for (let col = 0; col < this.cxGrid; col++) {
-                let nRGB = Viewport.isMandelbrot(xLeft, yTop, 100)? 0 : -1;
+                let nRGB = Viewport.isMandelbrot(xLeft, yTop, 100)? -1 : 0;
                 this.setGridPixel(row, col, nRGB);
                 xLeft += xInc;
             }
@@ -154,29 +154,23 @@ class Viewport {
     }
 
     /**
-     * isMandelbrot(cr, ci, nMax)
+     * isMandelbrot(x, y, nMax)
      *
      * @this {Viewport}
-     * @param {number} cr
-     * @param {number} ci
-     * @param {number} nMax
+     * @param {number} x
+     * @param {number} y
+     * @param {number} nMax (iterations)
+     * @return {number} (of iterations remaining, 0 if presumed to be in the Mandelbrot set)
      */
-    static isMandelbrot(cr, ci, nMax)
+    static isMandelbrot(x, y, nMax)
     {
-        let zr = cr;
-        let zi = ci;
-        for (let i = 0; i < nMax; i++) {
-            let zrNew = zr * zr;
-            let ziNew = zi * zi;
-            if (zrNew + ziNew > 4) {
-                return false;
-            }
-            zrNew = zrNew - ziNew + cr;
-            ziNew = (zr * zi * 2) + ci;
-            zr = zrNew;
-            zi = ziNew;
-        }
-        return true;
+        let a = 0, b = 0, ta = 0, tb = 0, m;
+        do {
+            b = 2 * a * b + y;
+            a = ta - tb + x;
+            m = (ta = a * a) + (tb = b * b);
+        } while (--nMax > 0 && m < 4);
+        return nMax;
     }
 
     /**

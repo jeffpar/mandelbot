@@ -99,7 +99,7 @@ tools listed in [package.json](package.json) using the Node Package Manager:
 Inspiration
 -----------
 
-[The Mandelwat Set](https://medium.com/dailyjs/the-mandelwat-set-c3037204bf83) by [Jeff Fowler](http://blog.jfo.click/).
+[Scientific American, August 1985: Exploring the Mandelbrot Set](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf) by A. K. Dewdney.
 
 Perspiration
 ------------
