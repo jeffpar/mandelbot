@@ -22,7 +22,7 @@ indent_style = tab
 indent_size = 4
 trim_trailing_whitespace = false
 
-[*.{ASM,INC,PAS,C,H}]
+[*.{ASM,INC,PAS,C,H,TXT}]
 indent_style = tab
 indent_size = 8
 trim_trailing_whitespace = false
