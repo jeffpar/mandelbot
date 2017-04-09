@@ -68,7 +68,8 @@
  *		2 =  2-color Med-res  (CGA/EGA)
  *		3 = 16-color Low-res  (EGA)
  *		4 = 16-color Med-res  (EGA)
- *		5 = 16-color High-res (EGA w/Enhanced Display)
+ *		5 = 16-color 640x350  (EGA w/Enhanced Display)
+ *		6 = 16-color 640x480  (EVA w/MultiSync Display)
  *		Note: since EGA colors are selected from a 64-color palette,
  *		colors appearing on an Enhanced Display may differ from
  *		those seen on a normal IRGB Color Display (unless a different
@@ -119,7 +120,7 @@ typedef	unsigned char BYTE;
 /*** Global constants ***/
 
 char	*title  = "Mandelbrot Microscope\n";
-char	*ver    = "Version 3.01 by Jeff Parsons  August, 1986\n";
+char	*ver    = "Version 3.02 by Jeff Parsons  August, 1986\n";
 
 double	zero = 0.0;
 
@@ -128,12 +129,12 @@ double	zero = 0.0;
 
 double	xcenter = -0.75,	/* (x,y) co-ordinates of graph center */
 	ycenter = 0.0,
-	xsize = 2.5,		/* width of image, along x (real) axis */
+	xsize = 3.25,		/* width of image, along x (real) axis */
 	percentage = 100.0,	/* percentage of screen area to use */
 	yfactor = RATIO;	/* ysize will be (xsize * yfactor)
 				   to compensate for rectangular screen */
-unsigned graphmode = 4,		/* see list of graph mode #'s above */
-	 maxcount = 1000,
+unsigned graphmode = 1,		/* see list of graph mode #'s above */
+	 maxcount = 250,
 	 colorjump = 0,
 	 uniquecolors = 15;
 
@@ -147,7 +148,7 @@ char	*colorlist = NULL,	/* pointer set to color-list, if any */
 
 /*** Global calculations ***/
 
-BYTE	egamode = 0,		/* 1=color, 2=enhanced, 3=monochrome */
+BYTE	egamode = 0,		/* 1=color, 2=enhanced, 3=monochrome, 4=eva */
 	egasize = 0,		/* # of 64k chunks installed */
 	egabits = 0,		/* ega feature bits */
 	egasets = 0;		/* ega switch settings */
@@ -167,7 +168,7 @@ double	ysize,			/* height of image (see yfactor) */
 FILE	*graphfile = NULL,
 	*imagefile = NULL;
 
-int	vtable[5] = {0x04, 0x06, 0x0D, 0x0E, 0x10};
+int	vtable[6] = {0x04, 0x06, 0x0D, 0x0E, 0x10, 0x25};
 int	utable[5] = {4, 2, 16, 16, 16};
 char	ktable[8] = {'b', 'u', 'g', 'c', 'r', 'm', 'o', 'w'};
 BYTE	ptable[17] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -292,6 +293,9 @@ int video_mode()
 void get_ega()
 {
 	union REGS regs;
+	char far *romaddr;
+	register int i;
+	char romstring[6];
 
 	regs.h.ah = 0x12;	/* video function 12: alternate fn select */
 	regs.h.bl = 0x10;	/* # to request ega info */
@@ -312,7 +316,24 @@ void get_ega()
 	}
 	if (egamode == 1 && (egasets == 0x08 || egasets == 0x09) ||
 	    egamode == 2)
-		egamode++;
+		egamode++;	/* adjust egamode to value from 1 to 3 */
+	if (egamode) {
+		romaddr = (char far *)0xC0000076L;
+		for (i=0; i<=4; i++)
+			romstring[i] = *romaddr++;
+		romstring[5] = '\0';
+		if (!strcmp(romstring, "Tseng"))
+			egamode += 2;
+	}
+	if (egamode == 1)	/* ega but with rgb monitor */
+		graphmode = 4;
+	else
+	if (egamode >= 2 && egamode <= 3)
+		graphmode = 5;	/* enhanced color can support 640x350 */
+	else {
+		graphmode = 6;	/* Tseng Eva/480 board can support 640x480 */
+		yfactor = 0.75;	/* square pixel, so ratio exactly 480/640 */
+	}
 }
 
 
@@ -356,6 +377,8 @@ void display_type()
 			p = "Enhanced Color";
 		else if (egamode == 3)
 			p = "Monochrome w/EGA";
+		else if (egamode >= 4 && egamode <= 5)
+			p = "MultiSync w/EVA";
 		else {
 			p = "Unknown [ ]";
 			*(p+9) = '0'+egamode;
@@ -397,14 +420,14 @@ void get_unknowns()
 			flags.size = FALSE;
 	}
 	while (!flags.count) {
-		printf("Max iterations [1000]: ");
+		printf("Max iterations [%u]: ", maxcount);
 		if (!(flags.count = inp_line("%u", (double *)&maxcount)==1))
 			break;
 		else if (maxcount == 0)
 			flags.size = FALSE;
 	}
 	while (!flags.percent) {
-		printf("Percentage of screen [100%%]: ");
+		printf("Percentage of screen [%.0lf]: ", percentage);
 		if (!(flags.percent = inp_line("%lf", &percentage)==1))
 			break;
 		else if (percentage <= zero || percentage > 100.0)
@@ -418,17 +441,18 @@ void get_unknowns()
 			flags.ratio = FALSE;
 	}
 	while (!flags.mode) {
-		fputs("\n\
+		printf("\n\
 Display modes supported....\n\
-  1.  4-color Low-res  (CGA/EGA)\n\
-  2.  2-color Med-res  (CGA/EGA)\n\
-  3. 16-color Low-res  (EGA)\n\
-  4. 16-color Med-res  (EGA)\n\
-  5. 16-color High-res (EGA+Enhanced)\n\
-Select one of these display modes [5]: ", stdout);
+  1.  4-color Low-res (CGA/EGA)\n\
+  2.  2-color Med-res (CGA/EGA)\n\
+  3. 16-color Low-res (EGA)\n\
+  4. 16-color Med-res (EGA)\n\
+  5. 16-color 640x350 (EGA+Enhanced)\n\
+  6. 16-color 640x480 (EVA+MultiSync)\n\
+Select one of these display modes [%u]: ", graphmode);
 		if (!(flags.mode = inp_line("%u", (double *)&graphmode)==1))
 			break;
-		else if (graphmode == 0 || graphmode > 5)
+		else if (graphmode == 0 || graphmode > 6)
 			flags.mode = FALSE;
 	}
 }
@@ -655,12 +679,12 @@ void prep_graph()
 				graphmode = 1;
 			else if (graphmode == 4)
 				graphmode = 2;
-			else if (graphmode == 5) {
+			else if (graphmode >= 5) {
 				graphmode = 2;
 				flags.alternate = TRUE;
 			}
 		}
-		else if (graphmode == 5 && egamode == 1) {
+		else if (graphmode >= 5 && egamode == 1) {
 			graphmode = 4;
 			flags.alternate = TRUE;
 		}
@@ -670,8 +694,9 @@ void prep_graph()
 	vheight = 200;
 	if (graphmode == 1 || graphmode == 3)
 		vwidth = 320;
-	else
-	if (flags.alternate || graphmode == 5)
+	else if (graphmode == 6)
+		vheight = 480;
+	else if (flags.alternate || graphmode == 5)
 		vheight = 350;
 
 	percentage = sqrt(percentage/100.0);
@@ -845,7 +870,7 @@ char	**tbladr;
 			switch (tolower(*(*tbladr)++)) {
 			case 'h':		/* past 1st letter now */
 				flags.help = TRUE;
-				help();		   
+				help();
 				if (total > 1) {
 					putchar('\n');
 					break;
