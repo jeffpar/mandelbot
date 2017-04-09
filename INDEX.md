@@ -5,6 +5,4 @@ permalink: /
 Welcome to Mandelbot
 --------------------
 
-Something will appear here eventually.
-
-{% include viewport.html id="mandelbot1" width="200" height="200" gridWidth="400" gridHeight="400" idStatus="statusbot1" %}
+{% include viewport.html id="mandelbot1" width="400" height="400" gridWidth="800" gridHeight="800" idStatus="statusbot1" %}

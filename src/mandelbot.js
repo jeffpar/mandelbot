@@ -48,7 +48,11 @@ class Viewport {
      * @param {number} cyGrid
      * @param {string} [idStatus]
      */
-    constructor(idCanvas, cxGrid, cyGrid, idStatus) {
+    constructor(idCanvas, cxGrid, cyGrid, idStatus)
+    {
+        this.x = -0.5;
+        this.y = 0;
+        this.r = 3;
         this.canvasScreen = /** @type {HTMLCanvasElement} */ (document.getElementById(idCanvas));
         if (this.initScreen()) {
             this.initGrid(cxGrid, cyGrid);
@@ -56,7 +60,7 @@ class Viewport {
         if (idStatus) {
             this.status = document.getElementById(idStatus);
             if (this.status) {
-                this.status.innerHTML = new BigNumber(42).toString();
+                this.status.innerHTML = "This is a static image. Dynamic images coming soon.";   // new BigNumber(42).toString();
             }
         }
     }
@@ -110,11 +114,17 @@ class Viewport {
      */
     drawGrid()
     {
-        let nRGB = Viewport.randomColor();
-        for (let y = 0; y < this.cyGrid; y++) {
-            for (let x = 0; x < this.cxGrid; x++) {
-                this.setGridPixel(x, y, nRGB);
+        let yTop = this.y + this.r/2;
+        let yInc = this.r / this.cyGrid;
+        for (let row = 0; row < this.cyGrid; row++) {
+            let xLeft = this.x - this.r/2;
+            let xInc = this.r / this.cxGrid;
+            for (let col = 0; col < this.cxGrid; col++) {
+                let nRGB = Viewport.isMandelbrot(xLeft, yTop, 100)? 0 : -1;
+                this.setGridPixel(row, col, nRGB);
+                xLeft += xInc;
             }
+            yTop -= yInc;
         }
 
         let xDirty = 0;
@@ -127,16 +137,16 @@ class Viewport {
     }
 
     /**
-     * setGridPixel(x, y, nRGB)
+     * setGridPixel(row, col, nRGB)
      *
      * @this {Viewport}
-     * @param {number} x
-     * @param {number} y
+     * @param {number} row
+     * @param {number} col
      * @param {number} nRGB
      */
-    setGridPixel(x, y, nRGB)
+    setGridPixel(row, col, nRGB)
     {
-        let i = (x + y * this.imageGrid.width) * 4;
+        let i = (row * this.imageGrid.width + col) * 4;
         this.imageGrid.data[i] = nRGB & 0xff;
         this.imageGrid.data[i+1] = (nRGB >> 8) & 0xff;
         this.imageGrid.data[i+2] = (nRGB >> 16) & 0xff;
@@ -144,12 +154,38 @@ class Viewport {
     }
 
     /**
+     * isMandelbrot(cr, ci, nMax)
+     *
+     * @this {Viewport}
+     * @param {number} cr
+     * @param {number} ci
+     * @param {number} nMax
+     */
+    static isMandelbrot(cr, ci, nMax)
+    {
+        let zr = cr;
+        let zi = ci;
+        for (let i = 0; i < nMax; i++) {
+            let zrNew = zr * zr;
+            let ziNew = zi * zi;
+            if (zrNew + ziNew > 4) {
+                return false;
+            }
+            zrNew = zrNew - ziNew + cr;
+            ziNew = (zr * zi * 2) + ci;
+            zr = zrNew;
+            zi = ziNew;
+        }
+        return true;
+    }
+
+    /**
      * randomColor()
      *
      * @return {number}
      */
-    static randomColor()
-    {
-        return Math.floor(Math.random() * 0x1000000);
-    }
+    // static randomColor()
+    // {
+    //     return Math.floor(Math.random() * 0x1000000);
+    // }
 }
