@@ -10,7 +10,8 @@ and an excuse to learn some new things, including how to use (and possibly modif
 [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library.
 
 The JavaScript code that calculates which numbers are in the Mandelbrot set and graphs them is in [src/mandelbot.js](src/mandelbot.js).
-An assortment of old Pascal, C, and 8088 assembly-language code that I wrote over 30 years ago has also been in archived in [src/old](src/old/).
+An assortment of old related Pascal, C, and 8088 assembly-language code that I wrote over 30 years ago has also been in archived in
+[src/old](src/old/).
 
 Installation
 ------------
@@ -62,7 +63,7 @@ Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll
 Operation
 ---------
 
-Mandelbots are instantiated in a Jekyll Markdown document, like the [home page](INDEX.md), using the
+Mandelbots are instantiated in a Jekyll Markdown document (like the [home page](INDEX.md)) using the
 [viewport](_includes/viewport.html) include file:
 
 	{% include viewport.html id="mandelbot1" viewWidth="200" viewHeight="200" %}
