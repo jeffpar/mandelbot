@@ -82,10 +82,8 @@ class Viewport {
                  * TODO: Verify that this property really only has much (if any) effect when the View context has HIGHER
                  * resolution than the Grid context, and that it only makes sense on the View context; also, I'm not sure
                  * how many browsers really support it, and which browsers require special prefixes on the property (eg,
-                 * 'mozImageSmoothingEnabled', 'webkitImageSmoothingEnabled', etc).
-                 *
-                 * Also, if it's possible that some users really WANT to produce low-res "fuzzy" images, then consider
-                 * adding a parameter to control this setting.
+                 * 'mozImageSmoothingEnabled', 'webkitImageSmoothingEnabled', etc).  Finally, if it's possible that some users
+                 * really WANT to produce low-res "fuzzy" images, then consider adding a parameter to control this setting.
                  *
                  * Refer to: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled
                  */
@@ -149,7 +147,7 @@ class Viewport {
         let cyDirty = this.cyGrid;
         this.contextGrid.putImageData(this.imageGrid, 0, 0, xDirty, yDirty, cxDirty, cyDirty);
 
-        this.contextView.drawImage(this.canvasGrid, 0, 0, this.canvasGrid.width, this.canvasGrid.height, 0, 0, this.cxView, this.cyView);
+        this.contextView.drawImage(this.canvasGrid, 0, 0, this.cxGrid, this.cyGrid, 0, 0, this.cxView, this.cyView);
     }
 
     /**
