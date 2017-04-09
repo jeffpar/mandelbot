@@ -1,4 +1,4 @@
-/* mbrot.c  v3.01
+/* mbrot.c  v3.02
  *
  * Original version (3.00) by Jeff Parsons  8/86
  * Original recursive algorithm by Bill Mershon  8/86
@@ -132,7 +132,7 @@ double	xcenter = -0.75,	/* (x,y) co-ordinates of graph center */
 	percentage = 100.0,	/* percentage of screen area to use */
 	yfactor = RATIO;	/* ysize will be (xsize * yfactor)
 				   to compensate for rectangular screen */
-unsigned graphmode = 5,		/* see list of graph mode #'s above */
+unsigned graphmode = 4,		/* see list of graph mode #'s above */
 	 maxcount = 1000,
 	 colorjump = 0,
 	 uniquecolors = 15;
@@ -742,7 +742,7 @@ void do_graph()
 				printf("*");
 				step += stepinc;
 			}
-			
+
 	}
 }
 
@@ -823,7 +823,7 @@ int xi, yi, count;
 		regs.h.dl = 0;		/* column */
 		regs.h.bh = 0;		/* page */
 		int86(0x10, &regs, &regs);
-		printf("Position: %u,%u  Color: %u", xi,yi,(unsigned)color);
+		printf("Position: %3u,%3u    Color: %2u", xi,yi,(unsigned)color);
 		regs.h.ah = 0;		/* wait for a key */
 		int86(0x16, &regs, &regs);
 		if (regs.h.al == ' ')
