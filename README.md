@@ -55,10 +55,10 @@ Those were resolved by:
 - Running `xcode-select --install` from a Terminal window
 
 Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll serve`, but including the
-[_developer.yml](_developer.yml) configuration file turns off certain production-only features, such as:
+[_developer.yml](_developer.yml) configuration file turns off certain production-only features; specifically, it:
 
-- Google Analytics
-- Minified ES5-compatible JavaScript
+- Disables Google Analytics
+- Disables minified JavaScript
 
 Operation
 ---------
