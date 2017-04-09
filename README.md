@@ -88,8 +88,8 @@ Viewports support the following properties:
 - *id*: a unique identifier for the viewport; it is also used as the *id* for the `<canvas>` element.
 - *viewWidth*: the width of the viewport canvas, in pixels (default: 200)
 - *viewHeight*: the height of the viewport canvas, in pixels (default: 200)
-- *gridWidth*: the width of the grid on which Mandelbrot numbers will plotted, in pixels (default: viewWidth)
-- *gridHeight*: the height of the grid on which Mandelbrot numbers will plotted, in pixels (default: viewHeight)
+- *gridWidth*: the width of the grid canvas on which numbers will plotted, in pixels (default: viewWidth)
+- *gridHeight*: the height of the grid canvas on which numbers will plotted, in pixels (default: viewHeight)
 - *styleWidth*: the width used to display the viewport canvas (default: auto)
 - *styleHeight*: the height used to display the viewport canvas (default: auto)
 
