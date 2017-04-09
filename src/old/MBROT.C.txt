@@ -1,0 +1,1020 @@
+/* mbrot.c  v3.01
+ *
+ * Original version (3.00) by Jeff Parsons  8/86
+ * Original recursive algorithm by Bill Mershon  8/86
+ *
+ * Graphs regions in and around the Mandelbrot set,
+ * as outlined in the August '85 issue of Scientific American.
+ *
+ * Supports all common IBM display modes, using CGA or EGA adapters.
+ *
+ *
+ * Usage:  mbrot [graph-file] [options...]
+ *	Graph-file is the name of a file to create or restore from
+ *	(depending on whether the -c option is present or not);  if
+ *	not given, it will be prompted for;  the graph-file need
+ *	not precede the options (that is up to the user's preference).
+ *	If the graph-file, when opened, is determined to be an image-
+ *	library-file, then an automatic image-by-image restore is done, so
+ *	options i,c,x,y,w,p,m,l would be ignored (see below for more info).
+ *
+ * Options (/ may be used instead of -):
+ *	-h	lists program usage and options;
+ *	-l	selects resident (background) operation;
+ *	-ec	allows EGA display modes, in
+ *		the event EGA capability is not detected;  c
+ *		should either be 'c'(color) or 'm'(monochrome);
+ *	-b	selects "batch" mode, under which all user-interaction
+ *		is avoided;  otherwise, required values will be prompted
+ *		for if not known, and the graphics-interface menu (not
+ *		yet designed) made available (on completion of a graph);
+ *	-n	inhibits graph display during computation, which normally
+ *		occurs only when -l option selected;
+ *	-t	displays time required for graph computation (and possibly
+ *		other statistics) when the graph is completed;
+ *	-kstrng	selects the colors to be used;  format of strng is
+ *		<color-code><intensity-value>..., where <color-code> is
+ *		b(black), u(blue), g(green), c(cyan), r(red), m(magenta),
+ *		o(brown), or w(white);  <intensity-value> is a digit 1-8;
+ *		the first code/value is reserved for the color of Mandelbrot
+ *		points;  (example: b1u1u2g1c1r1m1o1w1 selects black for
+ *		Mandelbrot points and eight other colors, repeated as needed);
+ *		maximum colors allowed following Mandelbrot color: 15 +
+ *		optional border color;
+ *	-j#	selects # of iterations spanned by each color;  default 1;
+ *	-c	selects CREATE mode, for which the values listed
+ *		below are needed (otherwise they will be prompted for);
+ *		without this option, the program is in RESTORE mode,
+ *		and expects to be given a graph-file to read from;
+ *		note that in "batch" mode, to create to an existing file,
+ *		(or to restore from a non-existent file) is a fatal error;
+ *	-cu	same as -c, but is UNCONDITIONAL (ie, if graph-file exists,
+ *		it will be deleted first);
+ *	-ifile	specifies an image-library-file to save the image
+ *		once it has been created (or restored);  if not given,
+ *		it will be prompted for, but it will not be required;
+ *	-v	causes the program to wait for a keyboard response
+ *		after restoring each frame of an image-library-file;
+ *	-x#.#	specifies x (real) co-ordinate of graph center,
+ *		where #.# represents any legal floating-point constant;
+ *	-y#.#	specifies y (imaginary) co-ordinate of graph center;
+ *	-w#.#	specifies the (real) width of the graph;
+ *		the (imaginary) height will be the width * RATIO;
+ *	-p#	specifies the percentage of the total screen area to be
+ *		used for the graph;  default is 100%
+ *	-r#.#	specifies vertical/horizontal ratio;  default is RATIO;
+ *	-g#	specifies the graphics display mode to be used:
+ *		1 =  4-color Low-res  (CGA/EGA)
+ *		2 =  2-color Med-res  (CGA/EGA)
+ *		3 = 16-color Low-res  (EGA)
+ *		4 = 16-color Med-res  (EGA)
+ *		5 = 16-color High-res (EGA w/Enhanced Display)
+ *		Note: since EGA colors are selected from a 64-color palette,
+ *		colors appearing on an Enhanced Display may differ from
+ *		those seen on a normal IRGB Color Display (unless a different
+ *		coloring scheme is selected with the k option); default
+ *		value depends on equipment installed;
+ *	-m#	specifies the algorithm limit (defaults to 1000, usual
+ *		limits are 100 to 32000);
+ *	-s	specifies "sequential" (or standard iterative) algorithm;
+ *		if omitted, then the *new* recursive algorithm will be used
+ *		(which analyzes borders of successive block-divisions of the
+ *		screen);  the output using either method should be identical;
+ *
+ * Errorlevels (currently):
+ *	1. Signal abort
+ *	2. File open/create error
+ *
+ * Examples:
+ *	mbrot mbrot.1 /c /x-1.25 /y0 /w2.5 /imbrot.mem
+ */
+
+
+/*** Include files ***/
+
+#define	LINT_ARGS  1		/* enable argument checking */
+
+#include <dos.h>
+#include <conio.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <signal.h>
+
+
+/*** Manifest constants ***/
+
+#define	TRUE	1
+#define	FALSE	0
+#define	NONE	-1
+#define	RATIO	0.7		/* vertical/horizontal ratio (aspect?) */
+#define	MAXPOINTS 65536/sizeof(int)
+
+
+/*** New type identifiers ***/
+
+typedef	unsigned char BYTE;
+
+
+/*** Global constants ***/
+
+char	*title  = "Mandelbrot Microscope\n";
+char	*ver    = "Version 3.01 by Jeff Parsons  August, 1986\n";
+
+double	zero = 0.0;
+
+
+/*** Global inputs ***/
+
+double	xcenter = -0.75,	/* (x,y) co-ordinates of graph center */
+	ycenter = 0.0,
+	xsize = 2.5,		/* width of image, along x (real) axis */
+	percentage = 100.0,	/* percentage of screen area to use */
+	yfactor = RATIO;	/* ysize will be (xsize * yfactor)
+				   to compensate for rectangular screen */
+unsigned graphmode = 5,		/* see list of graph mode #'s above */
+	 maxcount = 1000,
+	 colorjump = 0,
+	 uniquecolors = 15;
+
+BYTE	cgapalette = 0,		/* palette code (for CGA modes only) */
+	cgaborder = 0;		/* CGA border (or 1-color graphics color) */
+
+char	*colorlist = NULL,	/* pointer set to color-list, if any */
+	graphname[80] = "",	/* graph-file name */
+	imagename[80] = "";	/* image-library-file name */
+
+
+/*** Global calculations ***/
+
+BYTE	egamode = 0,		/* 1=color, 2=enhanced, 3=monochrome */
+	egasize = 0,		/* # of 64k chunks installed */
+	egabits = 0,		/* ega feature bits */
+	egasets = 0;		/* ega switch settings */
+
+int	oldmode = NONE;		/* mode to restore upon program termination */
+
+unsigned vwidth, vheight,	/* width & height of screen in pixels */
+	 hsize, vsize,		/* width & height of image on screen */
+	 hoffset, voffset;
+
+double	ysize,			/* height of image (see yfactor) */
+	xgap, ygap;		/* x and y deltas from point to point */
+
+
+/*** Other Global data ***/
+
+FILE	*graphfile = NULL,
+	*imagefile = NULL;
+
+int	vtable[5] = {0x04, 0x06, 0x0D, 0x0E, 0x10};
+int	utable[5] = {4, 2, 16, 16, 16};
+char	ktable[8] = {'b', 'u', 'g', 'c', 'r', 'm', 'o', 'w'};
+BYTE	ptable[17] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		      0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0};
+
+unsigned *screen = NULL;	/* pixel matrix pointer (array of points) */
+
+struct {unsigned title : 1;
+	unsigned error : 1;
+	unsigned help : 1;
+	unsigned debug : 1;
+	unsigned ega : 1;
+	unsigned batch : 1;
+	unsigned nodisp : 1;
+	unsigned alternate : 1;
+	unsigned time : 1;
+	unsigned create : 1;
+	unsigned ucreate : 1;
+	unsigned std : 1;
+	unsigned pause : 1;
+	unsigned x : 1;
+	unsigned y : 1;
+	unsigned size : 1;
+	unsigned count : 1;
+	unsigned percent : 1;
+	unsigned ratio : 1;
+	unsigned mode : 1;
+	} flags = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+
+/*** Forward declarations ***/
+
+void	do_title(void);
+int	sig_handler(void);
+int	video_mode(void);
+void	get_ega(void);
+void	set_video(int);
+void	set_palette(void);
+void	display_type(void);
+
+void	get_unknowns(void);
+void	parse_colors(char *);
+void	open_graph(void);
+void	read_header(void);
+void	write_header(void);
+
+void	prep_graph(void);
+void	do_graph(void);
+void	plot(int, int, int);
+
+void	get_switches(int, char **);
+void	help(void);
+void	clr_kbd(void);
+void	press_key(void);
+char	inp_char(void);
+int	inp_line(char *, double *);
+
+
+main(argc, argv, envp)
+int	argc;
+char	**argv, **envp;
+{
+	signal(SIGINT, sig_handler);	/* trap ctrl-c/break */
+	get_switches(--argc, ++argv);
+	display_type();			/* determine type of display */
+	if (!flags.batch)
+		get_unknowns();		/* get any unspecified variables */
+	else if (graphname[0])
+		open_graph();		/* try open even if batch */
+	if (colorlist)
+		parse_colors(colorlist);
+	if (flags.create && graphfile)	/* save info in file, if any */
+		write_header();
+	prep_graph();			/* compute graph parameters */
+	if (!flags.nodisp) {
+		set_video(vtable[graphmode-1]);
+		if (colorlist)
+			set_palette();
+	}
+	do_graph();			/* start graphing */
+	if (!flags.nodisp) {
+		clr_kbd();
+		getch();
+		set_video(oldmode);
+	}
+	exit(0);			/* then normal exit */
+}
+
+
+void do_title()
+{
+	if (!flags.title) {
+		printf("%s%s\n", title, ver);
+		flags.title = TRUE;
+	}
+}
+
+
+int sig_handler()
+{
+	/*
+	signal(SIGINT, sig_handler);
+	*/
+	if (oldmode != NONE && oldmode != video_mode())
+		set_video(oldmode);
+	fclose(graphfile);
+	fclose(imagefile);
+	_exit(1);
+}
+
+
+int video_mode()
+{
+	union REGS regs;
+
+	regs.h.ah = 0x0F;	/* video function 0F: get video state */
+	int86(0x10, &regs, &regs);
+	return(regs.h.al);
+}
+
+
+void get_ega()
+{
+	union REGS regs;
+
+	regs.h.ah = 0x12;	/* video function 12: alternate fn select */
+	regs.h.bl = 0x10;	/* # to request ega info */
+	int86(0x10, &regs, &regs);
+	if (regs.h.bl <= 3 && regs.h.bh <= 1) {
+		egamode = ++regs.h.bh;	/* return ega info */
+		egasize = ++regs.h.bl;	/* in global calculation area */
+		egabits = regs.h.ch;
+		egasets = regs.h.cl;
+	}
+	else if (flags.ega) {	/* egamode explicitly specified */
+		egasize = 1;
+		egabits = 0x0F;
+		if (egamode == 1)
+			egasets = 0x07;
+		else
+			egasets = 0x0B;
+	}
+	if (egamode == 1 && (egasets == 0x08 || egasets == 0x09) ||
+	    egamode == 2)
+		egamode++;
+}
+
+
+void set_video(newmode)
+int	newmode;
+{
+	union REGS regs;
+
+	regs.x.ax = newmode;	/* video function 00: set video mode */
+	int86(0x10, &regs, &regs);
+}
+
+
+void set_palette()
+{
+	union REGS regs;
+
+	if (egamode) {		/* video function 10/02: set all colors */
+		regs.x.ax = 0x1002;
+		regs.x.dx = (int)ptable;
+		int86(0x10, &regs, &regs);
+	}
+}
+
+
+void display_type()
+{
+	register char *p;
+
+	oldmode = video_mode();
+	get_ega();
+	if (!flags.batch) {
+		if (!egamode)
+			if (oldmode == 7)
+				p = "Monochrome";
+			else
+				p = "Color w/CGA";
+		else if (egamode == 1)
+			p = "Color w/EGA";
+		else if (egamode == 2)
+			p = "Enhanced Color";
+		else if (egamode == 3)
+			p = "Monochrome w/EGA";
+		else {
+			p = "Unknown [ ]";
+			*(p+9) = '0'+egamode;
+		}
+		do_title();
+		printf("Display type: %s", p);
+		if (egamode)
+			printf(" (%dk)", egasize*64);
+		printf("\n\n");
+	}
+}
+
+
+void get_unknowns()
+{
+	while (!graphfile) {
+		if (!graphname[0]) {
+			printf("Name of graph-file: ");
+			if (inp_line("%79s", (double *)graphname) != 1) {
+				putchar('\n');
+				break;
+			}
+		}
+		open_graph();
+	}
+	if (!flags.x) {		/* if xcenter not given as switch... */
+		printf("X of center: ");
+		flags.x = inp_line("%lf", &xcenter)==1;
+	}
+	if (!flags.y) {		/* similarly, if ycenter not known... */
+		printf("Y of center: ");
+		flags.y = inp_line("%lf", &ycenter)==1;
+	}
+	while (!flags.size) {	/* similarly, if xsize has not been set... */
+		printf("Width of window: ");
+		if (!(flags.size = inp_line("%lf", &xsize)==1))
+			break;
+		else if (xsize < zero)
+			flags.size = FALSE;
+	}
+	while (!flags.count) {
+		printf("Max iterations [1000]: ");
+		if (!(flags.count = inp_line("%u", (double *)&maxcount)==1))
+			break;
+		else if (maxcount == 0)
+			flags.size = FALSE;
+	}
+	while (!flags.percent) {
+		printf("Percentage of screen [100%%]: ");
+		if (!(flags.percent = inp_line("%lf", &percentage)==1))
+			break;
+		else if (percentage <= zero || percentage > 100.0)
+			flags.percent = FALSE;
+	}
+	while (!flags.ratio) {
+		printf("Vertical/horizontal ratio [%.2f]: ", yfactor);
+		if (!(flags.ratio = inp_line("%lf", &yfactor)==1))
+			break;
+		else if (yfactor <= zero || yfactor > 1.0)
+			flags.ratio = FALSE;
+	}
+	while (!flags.mode) {
+		fputs("\n\
+Display modes supported....\n\
+  1.  4-color Low-res  (CGA/EGA)\n\
+  2.  2-color Med-res  (CGA/EGA)\n\
+  3. 16-color Low-res  (EGA)\n\
+  4. 16-color Med-res  (EGA)\n\
+  5. 16-color High-res (EGA+Enhanced)\n\
+Select one of these display modes [5]: ", stdout);
+		if (!(flags.mode = inp_line("%u", (double *)&graphmode)==1))
+			break;
+		else if (graphmode == 0 || graphmode > 5)
+			flags.mode = FALSE;
+	}
+}
+
+
+void parse_colors(s)
+char *s;
+{
+	BYTE error = FALSE;
+	register int p, p2, i;
+
+	p = 0;
+	while (*s && p <= 16) {
+		for (i=0; i<8; i++)
+			if (*s == ktable[i])
+				break;
+		if (i == 8) {
+			error = TRUE;
+			break;
+		}
+		s++;
+		if (*s < '1' || *s > '8') {
+			error = TRUE;
+			break;
+		}
+		i += (*s++ - '1')*8;	/* palette code assembled now */
+		if (graphmode == 5 && egasize == 1) {
+			if (p <= 3) {
+				switch (p) {
+				case 0:
+					p2 = 0;
+					break;
+				case 1:
+					p2 = 1;
+					break;
+				case 2:
+					p2 = 4;
+					break;
+				case 3:
+					p2 = 5;
+					break;
+				}
+				ptable[p2] = ptable[p2+2] =
+				ptable[p2+8] = ptable[p2+10] = i;
+			}
+			else if (p == 16)
+				ptable[p] = i;
+		}
+		else
+			ptable[p] = i;
+		p++;
+	}
+	if (error) {
+		do_title();
+		fprintf(stderr, "Bad color code: %c\n", *s);
+		press_key();
+	}
+	else
+		uniquecolors = --p;
+}
+
+
+void open_graph()
+{
+	char str[80];
+
+	strupr(graphname);
+	if (flags.create) {
+		if (flags.ucreate) {
+			if (!(graphfile=fopen(graphname, "wb"))) {
+				flags.ucreate = FALSE;
+				fprintf(stderr, "Cannot create file %s",
+					graphname);
+				if (flags.batch)
+					_exit(2);
+				fprintf(stderr, "\n\n");
+				graphname[0] = '\0';
+			}
+			else
+				fprintf(graphfile, "Requires %s%s\x1A",
+					title, ver);
+		}
+		else {
+			if (graphfile=fopen(graphname, "rb")) {
+				fclose(graphfile);
+				graphfile = NULL;
+				fprintf(stderr, "File %s exists",
+					graphname);
+				if (flags.batch)
+					_exit(2);
+				fprintf(stderr, ", overwrite? ");
+				if (inp_char() == 'y') {
+					flags.ucreate = TRUE;
+					open_graph();
+				}
+				else
+					graphname[0] = '\0';
+				putchar('\n');
+			}
+			else {
+				flags.ucreate = TRUE;
+				open_graph();
+			}
+		}
+	}			/* create options taken care of now */
+	else {
+		graphfile=fopen(graphname, "r+b");
+		if (!graphfile)
+			graphfile=fopen(graphname, "rb");
+		if (!graphfile) {
+			fprintf(stderr, "File %s does not exist",
+				graphname);
+			if (flags.batch)
+				_exit(2);
+			fprintf(stderr, ", create? ");
+			if (inp_char() == 'y') {
+				flags.create = TRUE;
+				open_graph();
+			}
+			else
+				graphname[0] = '\0';
+			putchar('\n');
+		}
+		else {
+			fgets(str, 79, graphfile);
+			if (strcmp(str+9, title) != 0) {
+				fclose(graphfile);
+				graphfile = NULL;
+				fprintf(stderr, "Invalid graph file %s",
+					graphname);
+				if (flags.batch)
+					_exit(2);
+				fprintf(stderr, "\n\n");
+				graphname[0] = '\0';
+			}
+			else {
+				fgets(str, 79, graphfile);
+				fgetc(graphfile);	/* skip EOF byte */
+				read_header();
+			}
+		}
+	}
+}
+
+
+void read_header()
+{
+	unsigned i;
+
+	fread((char *)&graphmode, sizeof(graphmode), 1, graphfile);
+	cgapalette = getc(graphfile);
+	cgaborder = getc(graphfile);
+	fread((char *)&xcenter, sizeof(xcenter), 1, graphfile);
+	fread((char *)&ycenter, sizeof(ycenter), 1, graphfile);
+	fread((char *)&xsize, sizeof(xsize), 1, graphfile);
+	fread((char *)&percentage, sizeof(percentage), 1, graphfile);
+	fread((char *)&yfactor, sizeof(yfactor), 1, graphfile);
+	fread((char *)&i, sizeof(i), 1, graphfile);
+	if (!flags.count)
+		maxcount = i;
+	fread((char *)&i, sizeof(i), 1, graphfile);
+	if (!colorjump)
+		colorjump = i;
+	fread((char *)&uniquecolors, sizeof(uniquecolors), 1, graphfile);
+	fread((char *)ptable, sizeof(ptable), 1, graphfile);
+	getc(graphfile);		/* method-code + extra-bytes */
+	fread((char *)&i, sizeof(i), 1, graphfile);
+
+	flags.mode = flags.x = flags.y = flags.size =
+		flags.percent = flags.ratio = flags.count = TRUE;
+
+	if (!flags.batch) {
+		printf("Graph mode: %u\n", graphmode);
+		printf("Center x: %f\n", xcenter);
+		printf("Center y: %f\n", ycenter);
+		printf("Width: %f\n", xsize);
+		printf("Percentage: %f\n", percentage);
+		printf("Ratio: %f\n", yfactor);
+		printf("Max iterations: %u\n", maxcount);
+		press_key();
+	}
+}
+
+
+void write_header()
+{
+	int i = 0;
+
+	fwrite((char *)&graphmode, sizeof(graphmode), 1, graphfile);
+	putc((int)cgapalette, graphfile);
+	putc((int)cgaborder, graphfile);
+	fwrite((char *)&xcenter, sizeof(xcenter), 1, graphfile);
+	fwrite((char *)&ycenter, sizeof(ycenter), 1, graphfile);
+	fwrite((char *)&xsize, sizeof(xsize), 1, graphfile);
+	fwrite((char *)&percentage, sizeof(percentage), 1, graphfile);
+	fwrite((char *)&yfactor, sizeof(yfactor), 1, graphfile);
+	fwrite((char *)&maxcount, sizeof(maxcount), 1, graphfile);
+	fwrite((char *)&colorjump, sizeof(colorjump), 1, graphfile);
+	fwrite((char *)&uniquecolors, sizeof(uniquecolors), 1, graphfile);
+	fwrite((char *)ptable, sizeof(ptable), 1, graphfile);
+	putc(0, graphfile);		/* method-code + extra-bytes */
+	fwrite((char *)&i, sizeof(i), 1, graphfile);
+}
+
+
+void prep_graph()
+{
+	int i;
+
+	if (flags.nodisp)
+		printf("\nComputing now...\n");
+	else {
+		if (oldmode == 7) {
+			if (!egamode) {
+				flags.nodisp = TRUE;
+				printf("\nNo CGA, display inhibited\n");
+			}
+			else
+				for (i=0; i<5; i++)
+					vtable[i] = 0x0F;
+		}
+		else if (graphmode >= 3 && !egamode) {
+			if (graphmode == 3)
+				graphmode = 1;
+			else if (graphmode == 4)
+				graphmode = 2;
+			else if (graphmode == 5) {
+				graphmode = 2;
+				flags.alternate = TRUE;
+			}
+		}
+		else if (graphmode == 5 && egamode == 1) {
+			graphmode = 4;
+			flags.alternate = TRUE;
+		}
+	}
+
+	vwidth = 640;
+	vheight = 200;
+	if (graphmode == 1 || graphmode == 3)
+		vwidth = 320;
+	else
+	if (flags.alternate || graphmode == 5)
+		vheight = 350;
+
+	percentage = sqrt(percentage/100.0);
+	hsize = vwidth * percentage;
+	vsize = vheight * percentage;
+	hoffset = (vwidth - hsize)/2;
+	voffset = (vheight - vsize)/2;
+
+	xgap = xsize / hsize;
+	ygap = (ysize = xsize * yfactor) / vsize;
+
+	if (!colorjump)
+		colorjump++;
+	if (egasize == 1)	/* 64kb EGA has 3-color(+bkgd) limit */
+		utable[4] = 4;
+	if (uniquecolors > utable[graphmode-1]-1)
+		uniquecolors = utable[graphmode-1]-1;
+}
+
+
+void do_graph()
+{
+	int xi, yi, count;
+	double x, y, xcorner, ycorner;
+	double step, stepinc;
+	double a, b, ta, tb, m;
+
+	xcorner = xcenter - xsize/2.0;
+	ycorner = ycenter + ysize/2.0;
+	step = stepinc = vsize / 79.0;
+	y = ycorner;
+	for (yi = 1;  yi <= vsize;  yi++) {
+		x = xcorner;
+		for (xi = 1;  xi <= hsize;  xi++) {
+			if (xi % 8 == 0)
+				if (kbhit())
+					;
+			if (graphfile && !flags.create) {
+				if (!fread((char *)&count,
+				     sizeof(count), 1, graphfile)) {
+					count = 0;
+					flags.create = TRUE;
+					clearerr(graphfile);
+					fseek(graphfile, 0l, SEEK_CUR);
+				}
+			}
+			else
+				count = 0;
+			if (!count) {
+				a = b = ta = tb = m = zero;
+				while (count++ < maxcount && m < 4.0) {
+					b = 2*a*b + y;
+					a = ta-tb + x;
+					m = (ta = a*a) + (tb = b*b);
+				}
+				count--;
+			}
+			if (!flags.nodisp)
+				plot(xi, yi, count);
+			if (graphfile && flags.create)
+				fwrite((char *)&count,
+					sizeof(count), 1, graphfile);
+			x += xgap;
+		}
+		y -= ygap;
+		if (flags.nodisp)
+			while (yi >= step) {
+				printf("*");
+				step += stepinc;
+			}
+			
+	}
+}
+
+
+void plot(xi, yi, count)
+int xi, yi, count;
+{
+	BYTE mask, color, i;
+	BYTE far *addr;
+	union REGS regs;
+
+	if (flags.alternate)
+		if ( !(yi % 2) )
+			return;
+		else
+			yi = (++yi / 2);
+	if (count >= maxcount)
+		color = 0;
+	else {
+		count = (--count)/colorjump + 1;
+		color = (--count)%uniquecolors + 1;
+		if (graphmode == 5 && egasize == 1)
+			if (color >= 2)	/* for 64kb ega mode... */
+				color += 2;	/* palette mapping differs */
+	}
+	yi = --yi+voffset;
+	xi = --xi+hoffset;
+	while (TRUE) {
+		regs.h.al = color;
+		if (graphmode == 99) {
+			addr = (BYTE far *)(0xA0000000l + yi*80 + xi/8);
+			switch (xi % 8) {
+			case 0:
+				mask = 0x80;
+				break;
+			case 1:
+				mask = 0x40;
+				break;
+			case 2:
+				mask = 0x20;
+				break;
+			case 3:
+				mask = 0x10;
+				break;
+			case 4:
+				mask = 0x08;
+				break;
+			case 5:
+				mask = 0x04;
+				break;
+			case 6:
+				mask = 0x02;
+				break;
+			case 7:
+				mask = 0x01;
+				break;
+			}
+			outp(0x3CE, 8);		/* select bit mask register */
+			outp(0x3CF, mask);	/* store it */
+			i = *addr;
+			*addr = 0;		/* this sets bit-masked bits to 0 */
+			outp(0x3C4, 2);		/* select map mask register 2 */
+			outp(0x3C5, regs.h.al);
+			i = *addr;
+			*addr = 0xFF;		/* set bits in enabled planes */
+		}
+		else {
+			regs.h.ah = 0x0C;	/* write-dot function # */
+			regs.h.bh = 0;		/* page # */
+			regs.x.cx = xi;		/* column */
+			regs.x.dx = yi;		/* and row, both relative to 0 */
+			int86(0x10, &regs, &regs);
+		}
+		if (!flags.debug)
+			break;
+		regs.h.ah = 0x02;	/* video function 02: set cursor position */
+		regs.h.dh = 20;		/* row */
+		regs.h.dl = 0;		/* column */
+		regs.h.bh = 0;		/* page */
+		int86(0x10, &regs, &regs);
+		printf("Position: %u,%u  Color: %u", xi,yi,(unsigned)color);
+		regs.h.ah = 0;		/* wait for a key */
+		int86(0x16, &regs, &regs);
+		if (regs.h.al == ' ')
+			break;
+		color = ++color & 0x0F;
+	}
+}
+
+
+void get_switches(count, tbladr)
+int	count;
+char	**tbladr;
+{
+	int total;
+
+	for (total = count; count > 0; count--,tbladr++) {
+		if (**tbladr == '-' || **tbladr == '/') {
+			(*tbladr)++;		/* past switch char */
+			switch (tolower(*(*tbladr)++)) {
+			case 'h':		/* past 1st letter now */
+				flags.help = TRUE;
+				help();		   
+				if (total > 1) {
+					putchar('\n');
+					break;
+				}
+				else
+					exit(0);
+			case 'l':
+				do_title();
+				fprintf(stderr,
+					"Load option not supported yet\n\n");
+				flags.error = TRUE;
+				break;
+			case 'e':
+				flags.ega = TRUE;
+				if (tolower(**tbladr) == 'm')
+					egamode = 2;
+				else
+					egamode = 1;
+				break;
+			case 'b':
+				flags.batch = TRUE;
+				break;
+			case 'd':
+				flags.debug = TRUE;
+				break;
+			case 'n':
+				flags.nodisp = TRUE;
+				break;
+			case 't':
+				flags.time = TRUE;
+				break;
+			case 'k':
+				colorlist = *tbladr;
+				break;
+			case 'j':
+				colorjump = atoi(*tbladr);
+				break;
+			case 'c':
+				flags.create = TRUE;
+				if (tolower(**tbladr) == 'u')
+					flags.ucreate = TRUE;
+				break;
+			case 's':
+				flags.std = TRUE;
+				break;
+			case 'v':
+				flags.pause = TRUE;
+				break;
+			case 'i':
+				strcpy(imagename, *tbladr);
+				break;
+			case 'x':
+				flags.x = TRUE;
+				xcenter = atof(*tbladr);
+				break;
+			case 'y':
+				flags.y = TRUE;
+				ycenter = atof(*tbladr);
+				break;
+			case 'w':
+				flags.size = TRUE;
+				xsize = atof(*tbladr);
+				break;
+			case 'p':
+				flags.percent = TRUE;
+				percentage = atof(*tbladr);
+				break;
+			case 'r':
+				flags.ratio = TRUE;
+				yfactor = atof(*tbladr);
+				break;
+			case 'g':
+				flags.mode = TRUE;
+				graphmode = atoi(*tbladr);
+				break;
+			case 'm':
+				flags.count = TRUE;
+				maxcount = atoi(*tbladr);
+				break;
+			default:
+				do_title();
+				fprintf(stderr,
+					"Unknown option: %c\n", *(*tbladr-1));
+				flags.error = TRUE;
+				break;
+			}
+		}
+		else {
+			if (!graphname[0])
+				strcpy(graphname, *tbladr);
+			else {
+				do_title();
+				fprintf(stderr,
+					"Argument ignored: %s\n", *tbladr);
+				flags.error = TRUE;
+			}
+		}
+	}
+	if (flags.error || flags.help && flags.batch)
+		press_key();
+}
+
+
+void help()
+{
+	do_title();
+	fputs("\
+Usage:    mbrot [graph-file] [options...]\n\n\
+Options:  -h	list usage and options\n\
+	  -b	select batch-mode operation\n\
+	  -n	inhibit display during computation\n\
+	  -t	display computation time/statistics\n\
+	  -c	create graph-file (default is restore)\n\
+	  -cu	create graph-file unconditionally\n\
+	  -ifn	add graph to image-library-file fn\n", stdout);
+	fputs("\
+	  -v	pause after each frame of image-library\n\
+	  -x#.#	set x(real) co-ordinate of center\n\
+	  -y#.#	set y(imaginary) co-ordinate of center\n\
+	  -w#.#	set width(real) of graph\n\
+	  -p#	set percentage of screen to be used\n\
+	  -r#.#	set vertical/horizontal ratio\n\
+	  -g#	select graphics mode #\n\
+	  -m#	specify maximum iterations per pixel\n\
+	  -s	specify standard algorithm (non-recursive)\n", stdout);
+}
+
+
+void clr_kbd()
+{
+	while (kbhit())
+		getch();
+}
+
+
+void press_key()
+{
+	FILE *f;
+
+	if (flags.error)
+		f = stderr;
+	else
+		f = stdout;
+	fprintf(f, "\nPress any key to continue...");
+	clr_kbd();
+	getch();
+	putchar('\n');
+	flags.error = FALSE;
+}
+
+
+char inp_char()
+{
+	char	c;
+
+	c = tolower(getche());
+	putchar('\n');
+	return(c);
+}
+
+
+int inp_line(fmt, arg1)
+char	*fmt;
+double	*arg1;
+{
+	char	line[132];
+
+	if (!gets(line))
+		exit(0);
+	return(sscanf(line, fmt, arg1));
+}
+
