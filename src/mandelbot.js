@@ -24,7 +24,7 @@ window['initViewport'] = initViewport;
 function initViewport(idCanvas, cxGrid, cyGrid, idStatus)
 {
     let viewport = new Viewport(idCanvas, cxGrid, cyGrid, idStatus);
-    if (viewport.canvasScreen) {
+    if (viewport.canvasView) {
         activeViewports.push(viewport);
     }
 }
@@ -33,8 +33,8 @@ function initViewport(idCanvas, cxGrid, cyGrid, idStatus)
  * @class Viewport
  * @unrestricted
  *
- * @property {HTMLCanvasElement} canvasScreen
- * @property {CanvasRenderingContext2D} contextScreen
+ * @property {HTMLCanvasElement} canvasView
+ * @property {CanvasRenderingContext2D} contextView
  * @property {Element} status
  */
 class Viewport {
@@ -53,8 +53,8 @@ class Viewport {
         this.x = -0.5;
         this.y = 0;
         this.r = 3;
-        this.canvasScreen = /** @type {HTMLCanvasElement} */ (document.getElementById(idCanvas));
-        if (this.initScreen()) {
+        this.canvasView = /** @type {HTMLCanvasElement} */ (document.getElementById(idCanvas));
+        if (this.initView()) {
             this.initGrid(cxGrid, cyGrid);
         }
         if (idStatus) {
@@ -66,19 +66,34 @@ class Viewport {
     }
 
     /**
-     * initScreen()
+     * initView()
      *
      * @this {Viewport}
      * @return {boolean}
      */
-    initScreen()
+    initView()
     {
-        if (this.canvasScreen) {
-            this.cxScreen = this.canvasScreen.width;
-            this.cyScreen = this.canvasScreen.height;
-            this.contextScreen = this.canvasScreen.getContext("2d");
+        if (this.canvasView) {
+            this.cxView = this.canvasView.width;
+            this.cyView = this.canvasView.height;
+            this.contextView = this.canvasView.getContext("2d");
+            if (this.contextView) {
+                /*
+                 * TODO: Verify that this property really only has much (if any) effect when the View context has HIGHER
+                 * resolution than the Grid context, and that it only makes sense on the View context; also, I'm not sure
+                 * how many browsers really support it, and which browsers require special prefixes on the property (eg,
+                 * 'mozImageSmoothingEnabled', 'webkitImageSmoothingEnabled', etc).
+                 *
+                 * Also, if it's possible that some users really WANT to produce low-res "fuzzy" images, then consider
+                 * adding a parameter to control this setting.
+                 *
+                 * Refer to: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled
+                 */
+                this.contextView['imageSmoothingEnabled'] = false;
+                return true;
+            }
         }
-        return !!this.contextScreen;
+        return false;
     }
 
     /**
@@ -93,7 +108,7 @@ class Viewport {
     {
         this.cxGrid = cxGrid;
         this.cyGrid = cyGrid;
-        this.imageGrid = this.contextScreen.createImageData(cxGrid, cyGrid);
+        this.imageGrid = this.contextView.createImageData(cxGrid, cyGrid);
         if (this.imageGrid) {
             this.canvasGrid = document.createElement("canvas");
             if (this.canvasGrid) {
@@ -101,10 +116,11 @@ class Viewport {
                 this.canvasGrid.height = cyGrid;
                 if (this.contextGrid = this.canvasGrid.getContext("2d")) {
                     this.drawGrid();
+                    return true;
                 }
             }
         }
-        return !!this.contextGrid;
+        return false;
     }
 
     /**
@@ -133,7 +149,7 @@ class Viewport {
         let cyDirty = this.cyGrid;
         this.contextGrid.putImageData(this.imageGrid, 0, 0, xDirty, yDirty, cxDirty, cyDirty);
 
-        this.contextScreen.drawImage(this.canvasGrid, 0, 0, this.canvasGrid.width, this.canvasGrid.height, 0, 0, this.cxScreen, this.cyScreen);
+        this.contextView.drawImage(this.canvasGrid, 0, 0, this.canvasGrid.width, this.canvasGrid.height, 0, 0, this.cxView, this.cyView);
     }
 
     /**

@@ -1,8 +1,13 @@
 ---
 permalink: /
+viewports:
+  - id: mandelbot1
+    viewWidth: 1024
+    viewHeight: 1024
+    styleWidth: 100%
 ---
 
 Welcome to Mandelbot
 --------------------
 
-{% include viewport.html id="mandelbot1" width="360" height="360" gridWidth="720" gridHeight="720" idStatus="statusbot1" %}
+{% include viewport.html id="mandelbot1" %}

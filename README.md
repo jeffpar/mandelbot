@@ -65,7 +65,7 @@ Operation
 Mandelbots are instantiated in a Jekyll Markdown document, like the [home page](INDEX.md), using the
 [viewport](_includes/viewport.html) include file:
 
-	{% include viewport.html id="mandelbot1" width="200" height="200" %}
+	{% include viewport.html id="mandelbot1" viewWidth="200" viewHeight="200" %}
 	
 For documents containing multiple Mandelbots, it may be better to define each viewport's configuration parameters at the
 top of the Markdown document:
@@ -74,14 +74,41 @@ top of the Markdown document:
 	...
 	viewports:
 	  - id: mandelbot1
-	    width: 200
-	    height: 200
+	    viewWidth: 200
+	    viewHeight: 200
 	    ...
 	---
 
 And then each Mandelbot can be instantiated with just an *id* parameter:
 
 	{% include viewport.html id="mandelbot1" %}
+
+Viewports support the following properties:
+
+- *id*: a unique identifier for the viewport; it is also used as the *id* for the `<canvas>` element.
+- *viewWidth*: the width of the viewport canvas, in pixels (default: 200)
+- *viewHeight*: the height of the viewport canvas, in pixels (default: 200)
+- *gridWidth*: the width of the grid on which Mandelbrot numbers will plotted, in pixels (default: viewWidth)
+- *gridHeight*: the height of the grid on which Mandelbrot numbers will plotted, in pixels (default: viewHeight)
+- *styleWidth*: the width used to display the viewport canvas (default: auto)
+- *styleHeight*: the height used to display the viewport canvas (default: auto)
+
+*gridWidth* and *gridHeight* determine the resolution of the image to be calculated, while *viewWidth* and *viewHeight*
+determine the resolution used to display that image on the page.  They must be specified as numbers, and the units are pixels.
+
+The grid is essentially an internal canvas representing the Cartesian coordinate grid onto which all the complex numbers
+are plotted, after they have passed through the Mandelbrot set calculations.  The grid canvas is then drawn onto the viewport
+canvas.  By default, the canvas sizes are the same, but different values can be used to create different aspect ratios, scaling
+effects, etc.  And the use of two canvases makes the code more flexible, because it provides automatic double-buffering,
+which is an important feature in animation.
+
+*styleWidth* and *styleHeight* control how your browser displays the viewport; they are simply passed through to the browser
+as standard CSS *width* and *height* properties on the `canvas` element using the *style* attribute.  *auto* is the default for
+both properties.  You can also specify numbers of pixels, but since these are CSS properties, you must also specify the units
+(eg, *px*).  For example, a *styleWidth* of *200px* enforces a display width of 200 pixels.
+
+Generally, the only reason to alter the style settings is to make the viewport responsive (ie, to fill the page as the width
+of the page changes).  This is commonly done by setting *styleWidth* to *100%*.
 
 Modification
 ------------

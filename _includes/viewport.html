@@ -1,27 +1,37 @@
 {% comment %}
-Viewports may have the following properties:
-  id (eg, mandelbot1)
-  width (eg, 200)
-  height (eg, 200)
-  gridWidth (eg, 400)
-  gridHeight (eg, 400)
-  idStatus (optional id of a status control)
+Viewports must have the following properties:
+
+  id (example: mandelbot1)
+
+Viewports may also have the following properties:
+
+  viewWidth (default: 200)
+  viewHeight (default: 200)
+  gridWidth (default: viewWidth)
+  gridHeight (default: viewHeight)
+  styleWidth (default: auto)
+  styleHeight (default: auto)
+  idStatus (default: )
+
+Any property definition in the include tag overrides that property definition in the Front Matter.
+
 {% endcomment %}
+{% assign view = nil %}
 {% for viewport in page.viewports %}
   {% if include.id == viewport.id %}
-    {% assign viewport_id = viewport.id %}
-  <canvas class="mandelbot-viewport" id="{{ viewport.id }}" width="{{ viewport.width }}" height="{{ viewport.height }}"></canvas>
-    {% if viewport.idStatus %}
-  <p class="mandelbot-status" id="{{ viewport.idStatus }}">No status</p>
-    {% endif %}
-  <script type="text/javascript">initViewport("{{ viewport.id }}",{{ viewport.gridWidth }},{{ viewport.gridHeight }},"{{ viewport.idStatus }}");</script>
+    {% assign view = viewport %}
     {% break %}
   {% endif %}
 {% endfor %}
-{% if viewport_id == nil %}
-  <canvas class="mandelbot-viewport" id="{{ include.id }}" width="{{ include.width }}" height="{{ include.height }}"></canvas>
-  {% if include.idStatus %}
-  <p class="mandelbot-status" id="{{ include.idStatus }}">No status</p>
-  {% endif %}
-  <script type="text/javascript">initViewport("{{ include.id }}",{{ include.gridWidth }},{{ include.gridHeight }},"{{ include.idStatus }}");</script>
+{% assign viewWidth = include.viewWidth | default: view.viewWidth | default: '200' %}
+{% assign viewHeight = include.viewHeight | default: view.viewHeight | default: '200' %}
+{% assign gridWidth = include.gridWidth | default: view.gridWidth | default: viewWidth %}
+{% assign gridHeight = include.gridHeight | default: view.gridHeight | default: viewHeight %}
+{% assign styleWidth = include.styleWidth | default: view.styleWidth | default: 'auto' %}
+{% assign styleHeight = include.styleHeight | default: view.styleHeight | default: 'auto' %}
+{% capture viewStyle %}width:{{styleWidth}};height:{{styleHeight}}{% endcapture %}
+<canvas class="mandelbot-viewport" id="{{ include.id }}" width="{{ viewWidth }}" height="{{ viewHeight }}" style="{{ viewStyle }}"></canvas>
+{% if include.idStatus or view.idStatus %}
+<p class="mandelbot-status" id="{{ include.idStatus | default: view.idStatus }}">No status</p>
 {% endif %}
+<script type="text/javascript">initViewport("{{ include.id }}",{{ gridWidth }},{{ gridHeight }},"{{ include.idStatus | default: view.idStatus }}");</script>
