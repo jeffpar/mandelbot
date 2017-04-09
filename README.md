@@ -101,7 +101,8 @@ Inspiration
 
 [Scientific American, August 1985: Exploring the Mandelbrot Set](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
 
-> "Computer Recreations: A computer microscope zooms in for a look at the most complex object in mathematics" by A. K. Dewdney.
+> "[Computer Recreations: A computer microscope zooms in for a look at the most complex object in mathematics](https://www.scientificamerican.com/article/mandelbrot-set)"
+by A. K. Dewdney, pp. 16-24.
 
 Perspiration
 ------------
