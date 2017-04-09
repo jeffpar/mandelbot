@@ -1,13 +1,13 @@
 Mandelbot
 ---------
 
-What is this project?  Like the [package.json](package.json) says:
+Like [package.json](package.json) says, this project will:
 
-	Generate Mandelbrot images in JavaScript using BigNumber.js
+	Interactively generate Mandelbrot images in JavaScript using BigNumber.js
 	
-However, this is a work-in-progress, so you're not going to see any Mandelbrot images just yet.  I started
-this project as a diversion and an excuse to learn some new things, including how to use (and possibly modify)
-the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library.
+However, this is a work-in-progress, so there isn't a lot to do here yet.  I started the project as a diversion
+and an excuse to learn some new things, including how to use (and possibly modify) the
+[BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library.
 
 Installation
 ------------
