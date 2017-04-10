@@ -138,5 +138,5 @@ by A. K. Dewdney, pp. 16-24.
 Perspiration
 ------------
 
-Copyright © [Jeff Parsons](https://twitter.com/jeffpar) 2017.  This is an open source project with no formal license.  It may be freely reused in any
-derivative work, provided you include some attribution along with the above copyright.
+Copyright © [Jeff Parsons](https://twitter.com/jeffpar) 2017.  This is an open source project with no formal license.
+It may be freely reused in any derivative work, provided you include some attribution along with the above copyright.
