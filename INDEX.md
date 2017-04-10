@@ -5,6 +5,7 @@ viewports:
     viewWidth: 1024
     viewHeight: 1024
     styleWidth: 100%
+    idStatus: status1
 ---
 
 Welcome to Mandelbot

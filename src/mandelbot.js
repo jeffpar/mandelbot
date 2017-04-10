@@ -11,68 +11,88 @@
 
 let activeViewports = [];
 
-window['initViewport'] = initViewport;
-
 /**
- * initViewport(idCanvas, idStatus)
+ * initViewport(idCanvas, cxGrid, cyGrid, xCenter, yCenter, xDistance, yDistance, idStatus)
  *
  * @param {string} idCanvas
- * @param {number} cxGrid
- * @param {number} cyGrid
+ * @param {number} [cxGrid]
+ * @param {number} [cyGrid]
+ * @param {number} [xCenter]
+ * @param {number} [yCenter]
+ * @param {number} [xDistance]
+ * @param {number} [yDistance]
  * @param {string} [idStatus]
  */
-function initViewport(idCanvas, cxGrid, cyGrid, idStatus)
+function initViewport(idCanvas, cxGrid, cyGrid, xCenter, yCenter, xDistance, yDistance, idStatus)
 {
-    let viewport = new Viewport(idCanvas, cxGrid, cyGrid, idStatus);
+    let viewport = new Viewport(idCanvas, cxGrid, cyGrid, xCenter, yCenter, xDistance, yDistance, idStatus);
     if (viewport.canvasView) {
         activeViewports.push(viewport);
     }
 }
 
+window['initViewport'] = initViewport;
+
 /**
  * @class Viewport
  * @unrestricted
- *
- * @property {HTMLCanvasElement} canvasView
- * @property {CanvasRenderingContext2D} contextView
- * @property {Element} status
  */
 class Viewport {
 
     /**
-     * Viewport(idCanvas, cxGrid, cyGrid, idStatus)
+     * Viewport(idCanvas, cxGrid, cyGrid, xCenter, yCenter, xDistance, yDistance, idStatus)
+     *
+     * The constructor initializes information about the View canvas (eg, its dimensions, 2D context, etc), and then
+     * creates the internal Grid canvas using the supplied dimensions, which usually match the View canvas dimensions
+     * but may differ if a different aspect ratio or scaling effect is desired.  See initView() and initGrid().
      *
      * @this {Viewport}
-     * @param {string} idCanvas
-     * @param {number} cxGrid
-     * @param {number} cyGrid
-     * @param {string} [idStatus]
+     * @param {string} idCanvas (the id of an existing view canvas; required)
+     * @param {number} [cxGrid] (grid canvas width; default is view canvas width)
+     * @param {number} [cyGrid] (grid canvas height; default is view canvas height)
+     * @param {number} [xCenter]
+     * @param {number} [yCenter]
+     * @param {number} [xDistance]
+     * @param {number} [yDistance]
+     * @param {string} [idStatus] (the id of an existing status control, if any)
      */
-    constructor(idCanvas, cxGrid, cyGrid, idStatus)
+    constructor(idCanvas, cxGrid = 0, cyGrid = 0, xCenter = -0.5, yCenter = 0, xDistance = 1, yDistance = 1, idStatus = "")
     {
-        this.x = -0.5;
-        this.y = 0;
-        this.w = 3;
-        this.canvasView = /** @type {HTMLCanvasElement} */ (document.getElementById(idCanvas));
-        if (this.initView()) {
-            this.initGrid(cxGrid, cyGrid);
+        this.xCenter = xCenter;
+        this.yCenter = yCenter;
+        this.xDistance = xDistance;
+        this.yDistance = yDistance;
+        this.statusMessage = "Interactive images coming soon";
+        try {
+            /*
+             * Why the try/catch?  Bad things CAN happen here; for example, bogus dimensions can cause
+             * the createImageData() call in initGrid() to barf.  So rather than trying to imagine every
+             * possible failure here, let's just catch and display any errors.
+             */
+            if (this.initView(idCanvas)) {
+                this.initGrid(cxGrid || this.cxView, cyGrid || this.cyView);
+            }
+        } catch(err) {
+            this.statusMessage = err.message;
         }
         if (idStatus) {
             this.status = document.getElementById(idStatus);
             if (this.status) {
-                this.status.innerHTML = "Interactive images coming soon.";   // new BigNumber(42).toString();
+                this.status.innerHTML = this.statusMessage;     // new BigNumber(42).toString();
             }
         }
     }
 
     /**
-     * initView()
+     * initView(idCanvas)
      *
      * @this {Viewport}
+     * @param {string} idCanvas
      * @return {boolean}
      */
-    initView()
+    initView(idCanvas)
     {
+        this.canvasView = /** @type {HTMLCanvasElement} */ (document.getElementById(idCanvas));
         if (this.canvasView) {
             this.cxView = this.canvasView.width;
             this.cyView = this.canvasView.height;
@@ -91,6 +111,7 @@ class Viewport {
                 return true;
             }
         }
+        this.statusMessage = "Missing view canvas";
         return false;
     }
 
@@ -104,20 +125,19 @@ class Viewport {
      */
     initGrid(cxGrid, cyGrid)
     {
-        this.cxGrid = cxGrid;
-        this.cyGrid = cyGrid;
         this.imageGrid = this.contextView.createImageData(cxGrid, cyGrid);
         if (this.imageGrid) {
             this.canvasGrid = document.createElement("canvas");
             if (this.canvasGrid) {
-                this.canvasGrid.width = cxGrid;
-                this.canvasGrid.height = cyGrid;
+                this.canvasGrid.width = this.cxGrid = cxGrid;
+                this.canvasGrid.height = this.cyGrid = cyGrid;
                 if (this.contextGrid = this.canvasGrid.getContext("2d")) {
                     this.drawGrid();
                     return true;
                 }
             }
         }
+        this.statusMessage = "Unable to create grid canvas";
         return false;
     }
 
@@ -128,11 +148,11 @@ class Viewport {
      */
     drawGrid()
     {
-        let yTop = this.y + this.w/2;
-        let yInc = this.w / this.cyGrid;
+        let yTop = this.yCenter + this.yDistance;
+        let yInc = (this.yDistance * 2) / this.cyGrid;
         for (let row = 0; row < this.cyGrid; row++) {
-            let xLeft = this.x - this.w/2;
-            let xInc = this.w / this.cxGrid;
+            let xLeft = this.xCenter - this.xDistance;
+            let xInc = (this.xDistance * 2) / this.cxGrid;
             for (let col = 0; col < this.cxGrid; col++) {
                 let nRGB = Viewport.isMandelbrot(xLeft, yTop, 100)? -1 : 0;
                 this.setGridPixel(row, col, nRGB);
@@ -160,7 +180,7 @@ class Viewport {
      */
     setGridPixel(row, col, nRGB)
     {
-        let i = (row * this.imageGrid.width + col) * 4;
+        let i = (row * this.cxGrid + col) * 4;
         this.imageGrid.data[i] = nRGB & 0xff;
         this.imageGrid.data[i+1] = (nRGB >> 8) & 0xff;
         this.imageGrid.data[i+2] = (nRGB >> 16) & 0xff;
