@@ -145,3 +145,7 @@ Perspiration
 
 Copyright © [Jeff Parsons](https://twitter.com/jeffpar) 2017.  This is an open source project with no formal license.
 It may be freely reused in any derivative work, provided you include some attribution along with the above copyright.
+
+A few portions are copyright 2012 by Christian Stigen Larsen and licensed under [Apache License](http://www.apache.org/licenses/LICENSE-2.0),
+Version 2.0.  Those portions are color-related functions that are clearly identified in [mandelbot.js](src/mandelbot.js) and must be
+accompanied by the same Apache License if they are redistributed.
