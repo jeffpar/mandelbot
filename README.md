@@ -63,13 +63,13 @@ Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll
 Operation
 ---------
 
-Mandelbots are instantiated in a Jekyll Markdown document (like the [home page](INDEX.md)) using the
-[viewport](_includes/viewport.html) include file:
+Mandelbots are added to a Jekyll Markdown document (like the [home page](INDEX.md)) using the [viewport](_includes/viewport.html)
+include file:
 
 	{% include viewport.html id="mandelbot1" viewWidth="200" viewHeight="200" %}
 	
 For documents containing multiple Mandelbots, it may be better to define each viewport's configuration parameters at the
-top of the Markdown document:
+top of the Markdown document (ie, inside the document's Front Matter):
 
 	---
 	...
@@ -80,7 +80,7 @@ top of the Markdown document:
 	    ...
 	---
 
-And then each Mandelbot can be instantiated with just an *id* parameter:
+And then each Mandelbot can be added with just an *id* parameter:
 
 	{% include viewport.html id="mandelbot1" %}
 
@@ -93,6 +93,10 @@ Viewports support the following properties:
 - *gridHeight*: the height of the grid canvas on which numbers will plotted, in pixels (default: viewHeight)
 - *styleWidth*: the width used to display the viewport canvas (default: auto)
 - *styleHeight*: the height used to display the viewport canvas (default: auto)
+- *xCenter*: the x coordinate of the center of the initial image (default: -0.5)
+- *yCenter*: the y coordinate of the center of the initial image (default: 0)
+- *xDistance*: the distance from xCenter to the right and left sides of the initial image (default: 1)
+- *yDistance*: the distance from yCenter to the top and bottom of the initial image (default: xDistance)
 
 *gridWidth* and *gridHeight* determine the resolution of the image to be calculated, while *viewWidth* and *viewHeight*
 determine the resolution used to display that image on the page.  They must be specified as numbers, and the units are pixels.
@@ -119,11 +123,12 @@ JavaScript files via a [WebStorm](https://www.jetbrains.com/webstorm/) File Watc
 
 	node_modules/google-closure-compiler/compiler.jar --compilation_level ADVANCED_OPTIMIZATIONS \
 	--create_source_map $FileName$.map --output_wrapper "(function(){%output%})() //# sourceMappingURL=/src/$FileName$.map" \
-	--js $FileName$ --js_output_file  $FileNameWithoutExtension$.min.js
+	--js $FileName$ --js_output_file $FileNameWithoutExtension$.min.js
 
 Both the original and minified JavaScript [source files](/src/) are checked into the project, so this may be of little interest
 unless you plan to modify the JavaScript files, in which case you can install the Closure Compiler and other assorted development
-tools listed in [package.json](package.json) using the Node Package Manager:
+tools listed in [package.json](package.json) using the Node Package Manager (which, of course, requires that you have
+[Node](https://nodejs.org) installed):
 
 	npm install
 
