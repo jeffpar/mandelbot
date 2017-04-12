@@ -10,12 +10,11 @@
 
 "use strict";
 
-let fYield = false;
 let idTimeout = null;
 let msTimeslice = (1000 / 60)|0;
-let nMaxIterationsPerNumber = 100;
-let nMaxIterationsPerTimeslice;         // this is calculated by a call to calibrate() below
-let nCurIterationsPerTimeslice = 0;     // this is reset to zero at the start of every updateViewports()
+let nMaxIterationsPerNumber = 100;      // the default value per number
+let nMaxIterationsPerViewport;          // this is updated by addViewport()
+let nMaxIterationsPerTimeslice;         // this is updated by calibrate()
 let activeViewports = [];
 let iNextViewport = 0;
 
@@ -52,9 +51,8 @@ class Viewport {
         this.yDistance = yDistance;
         this.aResults = [0, 0, 0, 0];
         this.nColorMode = 4;
-
+        this.nMaxIterations = nMaxIterationsPerNumber;
         this.statusMessage = "max iterations per " + msTimeslice + "ms timeslice: " + nMaxIterationsPerTimeslice;
-        // this.statusMessage = "Interactive images coming soon";
         try {
             /*
              * Why the try/catch?  Bad things CAN happen here; for example, bogus dimensions can cause
@@ -166,15 +164,18 @@ class Viewport {
         let xDirty = this.colPos;
         let yDirty = this.rowPos;
         let cxDirty = 0, cyDirty = 0;
+        let nMaxIterationsTotal = nMaxIterationsPerViewport;
         while (this.rowPos < this.gridHeight) {
-            while (!fYield && this.colPos < this.gridWidth) {
-                Viewport.isMandelbrot(this.xPos, this.yPos, 0, this.aResults);
+            while (nMaxIterationsTotal > 0 && this.colPos < this.gridWidth) {
+                var m = this.nMaxIterations;
+                var n = Viewport.isMandelbrot(this.xPos, this.yPos, m, this.aResults);
                 this.setGridPixel(this.rowPos, this.colPos, this.getColor(this.aResults));
                 this.xPos += this.xInc; this.colPos++;
                 if (!cyDirty) cxDirty++;
+                nMaxIterationsTotal -= (m - n);
                 fUpdated = true;
             }
-            if (fYield) break;
+            if (nMaxIterationsTotal <= 0) break;
             this.xPos = this.xLeft; this.colPos = 0;
             this.yPos -= this.yInc; this.rowPos++;
             xDirty = 0; cxDirty = this.gridWidth;
@@ -353,7 +354,6 @@ class Viewport {
             aResults[2] = ta;
             aResults[3] = tb;
         }
-        if ((nCurIterationsPerTimeslice += (nMax - n)) >= nMaxIterationsPerTimeslice) fYield = true;
         return n;
     }
 
@@ -455,6 +455,7 @@ function initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistan
 function addViewport(viewport)
 {
     activeViewports.push(viewport);
+    nMaxIterationsPerViewport = Math.floor(nMaxIterationsPerTimeslice / activeViewports.length);
     if (idTimeout == null) updateViewports();
 }
 
@@ -465,17 +466,12 @@ function addViewport(viewport)
  */
 function updateViewports()
 {
-    fYield = false;
     idTimeout = null;
-    nCurIterationsPerTimeslice = 0;
     let fUpdated = false;
     let nViewports = activeViewports.length;
     while (nViewports--) {
         let viewport = activeViewports[iNextViewport];
-        if (viewport.updateGrid()) {
-            fUpdated = true;
-            break;
-        }
+        if (viewport.updateGrid()) fUpdated = true;
         if (++iNextViewport >= activeViewports.length) iNextViewport = 0;
     }
     /*
