@@ -290,10 +290,10 @@ class Viewport {
                 nIterationsStart = 0;
             } while (true);
             nIterationsAvg += nIterationsTotal;
-            if (nCalibrations) nIterationsStart = Math.trunc(nIterationsTotal / nCalibrations);
+            if (nCalibrations) nIterationsStart = Math.floor(nIterationsTotal / nCalibrations);
             nLoops++;
         } while (--nCalibrations > 0);
-        return Math.trunc(nIterationsAvg / nLoops);
+        return Math.floor(nIterationsAvg / nLoops);
     }
 
     /**
