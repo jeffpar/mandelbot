@@ -327,7 +327,7 @@ class Viewport {
             aResults[0] = nMax;
             aResults[1] = n;
             /*
-             * We iterate a few more times reduce error in the returned data; see http://linas.org/art-gallery/escape/escape.html
+             * We iterate a few more times to provide more detail for the color functions; see http://linas.org/art-gallery/escape/escape.html
              */
             if (n) {
                 n = 4;
