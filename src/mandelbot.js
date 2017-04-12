@@ -49,7 +49,7 @@ class Viewport {
         this.aResults = [0, 0, 0, 0];
         this.colorScheme = (colorScheme !== undefined? colorScheme : Viewport.COLORSCHEME.GRAY);
         this.nMaxIterations = this.getMaxIterations();  // formerly hard-coded to nMaxIterationsPerNumber
-        this.statusMessage = "X: " + this.xCenter + " (+/-" + this.xDistance + ") Y: " + this.yCenter + " (+/-" + this.yDistance + ") Iterations/point: " + this.nMaxIterations;
+        this.statusMessage = "X: " + this.xCenter + " (+/-" + this.xDistance + ") Y: " + this.yCenter + " (+/-" + this.yDistance + ") Iterations: " + this.nMaxIterations;
         try {
             /*
              * Why the try/catch?  Bad things CAN happen here; for example, bogus dimensions can cause
