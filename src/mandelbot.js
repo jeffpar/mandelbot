@@ -12,14 +12,11 @@
 
 let idTimeout = 0;
 let msTimeslice = (1000 / 60)|0;
-let nMaxIterationsPerNumber = 100;      // the default value per number
+let nMaxIterationsPerNumber = 100;      // default maximum iterations
 let nMaxIterationsPerViewport;          // this is updated by addViewport()
 let nMaxIterationsPerTimeslice;         // this is updated by calibrate()
 let activeViewports = [];
 let iNextViewport = 0;
-
-let LOG_BASE = 1.0 / Math.log(2.0);
-let LOG_HALFBASE = Math.log(0.5) * LOG_BASE;
 
 /**
  * @class Viewport
@@ -27,7 +24,7 @@ let LOG_HALFBASE = Math.log(0.5) * LOG_BASE;
  */
 class Viewport {
     /**
-     * Viewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, idStatus)
+     * Viewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, colorScheme, idStatus)
      *
      * The constructor records information about the View canvas (eg, its dimensions, 2D context, etc), and then
      * creates the internal Grid canvas using the supplied dimensions, which usually match the View canvas dimensions
@@ -41,18 +38,19 @@ class Viewport {
      * @param {number} [yCenter]
      * @param {number} [xDistance]
      * @param {number} [yDistance]
+     * @param {number} [colorScheme]
      * @param {string} [idStatus] (the id of an existing status control, if any)
      */
-    constructor(idCanvas, gridWidth = 0, gridHeight = 0, xCenter = -0.5, yCenter = 0, xDistance = 1, yDistance = 1, idStatus = "")
+    constructor(idCanvas, gridWidth = 0, gridHeight = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, colorScheme, idStatus)
     {
         this.xCenter = xCenter;
         this.yCenter = yCenter;
-        this.xDistance = xDistance;
-        this.yDistance = yDistance;
+        this.xDistance = Math.abs(xDistance);
+        this.yDistance = Math.abs(yDistance);
         this.aResults = [0, 0, 0, 0];
-        this.nColorMode = 4;
-        this.nMaxIterations = nMaxIterationsPerNumber;
-        this.statusMessage = "max iterations per " + msTimeslice + "ms timeslice: " + nMaxIterationsPerTimeslice;
+        this.colorScheme = (colorScheme !== undefined? colorScheme : Viewport.COLORSCHEME.GRAY);
+        this.nMaxIterations = this.getMaxIterations();  // formerly hard-coded to nMaxIterationsPerNumber
+        this.statusMessage = "X: " + this.xCenter + " (+/-" + this.xDistance + ") Y: " + this.yCenter + " (+/-" + this.yDistance + ") Iterations/point: " + this.nMaxIterations;
         try {
             /*
              * Why the try/catch?  Bad things CAN happen here; for example, bogus dimensions can cause
@@ -164,18 +162,18 @@ class Viewport {
         let xDirty = this.colPos;
         let yDirty = this.rowPos;
         let cxDirty = 0, cyDirty = 0;
-        let nMaxIterationsTotal = nMaxIterationsPerViewport;
+        let nMaxIterationsUpdate = nMaxIterationsPerViewport;
         while (this.rowPos < this.gridHeight) {
-            while (nMaxIterationsTotal > 0 && this.colPos < this.gridWidth) {
+            while (nMaxIterationsUpdate > 0 && this.colPos < this.gridWidth) {
                 let m = this.nMaxIterations;
                 let n = Viewport.isMandelbrot(this.xPos, this.yPos, m, this.aResults);
                 this.setGridPixel(this.rowPos, this.colPos, this.getColor(this.aResults));
                 this.xPos += this.xInc; this.colPos++;
                 if (!cyDirty) cxDirty++;
-                nMaxIterationsTotal -= (m - n);
+                nMaxIterationsUpdate -= (m - n);
                 fUpdated = true;
             }
-            if (nMaxIterationsTotal <= 0) break;
+            if (nMaxIterationsUpdate <= 0) break;
             this.xPos = this.xLeft; this.colPos = 0;
             this.yPos -= this.yInc; this.rowPos++;
             xDirty = 0; cxDirty = this.gridWidth;
@@ -239,21 +237,21 @@ class Viewport {
 
             let v = Viewport.getSmoothColor(aResults);
 
-            switch (this.nColorMode) {
-            case 0:     // B&W
+            switch (this.colorScheme) {
+            case Viewport.COLORSCHEME.BW:
                 nRGB = -1;
                 break;
-            case 1:     // HSV1
+            case Viewport.COLORSCHEME.HSV1:
                 nRGB = Viewport.getRGBFromHSV(360 * v / aResults[0], 1.0, 1.0);
                 break;
-            case 2:     // HSV2
-            case 3:     // HSV3
+            case Viewport.COLORSCHEME.HSV2:
+            case Viewport.COLORSCHEME.HSV3:
                 nRGB = Viewport.getRGBFromHSV(360 * v / aResults[0], 1.0, 10.0 * v / aResults[0]);
-                if (this.nColorMode == 3) {
+                if (this.colorScheme == 3) {
                     nRGB = (nRGB & 0xff00ff00) | ((nRGB >> 16) & 0xff) | ((nRGB & 0xff) << 16);     // swap red and blue
                 }
                 break;
-            case 4:     // GREYSCALE
+            case Viewport.COLORSCHEME.GRAY:
                 v = Math.floor(512.0 * v / aResults[0]);
                 if (v > 0xff) v = 0xff;
                 nRGB = v | (v << 8) | (v << 16);
@@ -261,6 +259,22 @@ class Viewport {
             }
         }
         return nRGB;
+    }
+
+    /**
+     * getMaxIterations()
+     *
+     * Adapted from code in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
+     * Copyright 2012 by Christian Stigen Larsen.
+     * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
+     *
+     * @this {Viewport}
+     * @return {number}
+     */
+    getMaxIterations()
+    {
+        let f = Math.sqrt(0.001 + 4.0 * Math.min(this.xDistance, this.yDistance));
+        return Math.floor(223.0 / f);
     }
 
     /**
@@ -357,7 +371,7 @@ class Viewport {
         return n;
     }
 
-    /*
+    /**
      * getRGBFromHSV(h, s, v)
      *
      * Adapted from hsv_to_rgb() in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
@@ -400,28 +414,38 @@ class Viewport {
         return (r & 0xff) | ((g & 0xff) << 8) | ((b & 0xff) << 16);
     }
 
-    /*
+    /**
      * getSmoothColor(aResults)
      *
      * Adapted from smoothColor() in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
      * Copyright 2012 by Christian Stigen Larsen.
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
-     * @this {Viewport}
      * @param {Array.<number>} aResults
      * @return {number}
      */
     static getSmoothColor(aResults)
     {
         let n = aResults[0] - aResults[1];
-        return 5 + n - LOG_HALFBASE - Math.log(Math.log(aResults[2] + aResults[3])) * LOG_BASE;
+        return 5 + n - Viewport.LOG_HALFBASE - Math.log(Math.log(aResults[2] + aResults[3])) * Viewport.LOG_BASE;
     }
 }
+
+Viewport.COLORSCHEME = {
+    BW:     0,  // B&W
+    HSV1:   1,  // HSV1
+    HSV2:   2,  // HSV2
+    HSV3:   3,  // HSV3
+    GRAY:   4   // GRAYSCALE
+};
+
+Viewport.LOG_BASE = 1.0 / Math.log(2.0);
+Viewport.LOG_HALFBASE = Math.log(0.5) * Viewport.LOG_BASE;
 
 nMaxIterationsPerTimeslice = Viewport.calibrate(0, 8);
 
 /**
- * initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, idStatus, fAutoUpdate)
+ * initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, colorScheme, idStatus, fAutoUpdate)
  *
  * Global function for creating new Viewports.
  *
@@ -432,13 +456,14 @@ nMaxIterationsPerTimeslice = Viewport.calibrate(0, 8);
  * @param {number} [yCenter]
  * @param {number} [xDistance]
  * @param {number} [yDistance]
+ * @param {number} [colorScheme]
  * @param {string} [idStatus]
  * @param {boolean} [fAutoUpdate] (true to add the Viewport to the set of automatically updated Viewports)
  * @return {Viewport}
  */
-function initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, idStatus, fAutoUpdate = true)
+function initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, colorScheme, idStatus, fAutoUpdate = true)
 {
-    let viewport = new Viewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, idStatus);
+    let viewport = new Viewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, colorScheme, idStatus);
     if (fAutoUpdate) {
         addViewport(viewport);
     }
