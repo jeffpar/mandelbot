@@ -325,19 +325,29 @@ class Viewport {
             a = ta - tb + x;
             m = (ta = a * a) + (tb = b * b);
         } while (--n > 0 && m < 4);
+        /*
+         * If a results array is provided, we fill it in with:
+         *
+         *      [0]: the number of iterations specified (ie, the maximum)
+         *      [1]: the number of iterations remaining (if 0, then presumed to be in the Mandelbrot set)
+         *      [2]: the last square calculated using the real portion (x)
+         *      [3]: the last square calculated using the imaginary portion (y)
+         *
+         * Callers generally only care about the second value (which is the same as the function's return value),
+         * but all four values provide additional information about "how close" the number is to the Mandelbrot set.
+         */
         if (aResults) {
             aResults[0] = nMax;
             aResults[1] = n;
             /*
-             * We iterate a few more times to provide more detail for the color functions; see http://linas.org/art-gallery/escape/escape.html
+             * We iterate a few (4) more times to provide more detail; see http://linas.org/art-gallery/escape/escape.html
              */
             if (n) {
                 n = 4;
                 do {
                     b = 2 * a * b + y;
                     a = ta - tb + x;
-                    ta = a * a;
-                    tb = b * b;
+                    ta = a * a; tb = b * b;
                 } while (--n > 0);
             }
             aResults[2] = ta;
