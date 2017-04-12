@@ -10,7 +10,7 @@
 
 "use strict";
 
-let idTimeout = null;
+let idTimeout = 0;
 let msTimeslice = (1000 / 60)|0;
 let nMaxIterationsPerNumber = 100;      // the default value per number
 let nMaxIterationsPerViewport;          // this is updated by addViewport()
@@ -469,7 +469,7 @@ function addViewport(viewport)
 function updateViewports(fInit)
 {
     if (!fInit) {
-        idTimeout = null;
+        idTimeout = 0;
         let nViewports = activeViewports.length;
         while (nViewports--) {
             let viewport = activeViewports[iNextViewport];
@@ -480,7 +480,7 @@ function updateViewports(fInit)
     /*
      * Schedule a new call for immediate execution if there were any updates (otherwise, we assume all our work is done).
      */
-    if (fInit && idTimeout == null) {
+    if (fInit && !idTimeout) {
         idTimeout = setTimeout(updateViewports, 0);
     }
 }
