@@ -163,40 +163,41 @@ class Viewport {
     updateGrid()
     {
         let fUpdated = false;
+        let xDirty = this.colPos;
+        let yDirty = this.rowPos;
+        let cxDirty = 0, cyDirty = 0;
         while (this.rowPos < this.gridHeight) {
-            while (this.colPos < this.gridWidth) {
+            while (!fYield && this.colPos < this.gridWidth) {
                 Viewport.isMandelbrot(this.xPos, this.yPos, 0, this.aResults);
                 this.setGridPixel(this.rowPos, this.colPos, this.getColor(this.aResults));
                 this.xPos += this.xInc; this.colPos++;
-                if (fYield) {
-                    this.drawGrid();
-                    return true;
-                }
+                if (!cyDirty) cxDirty++;
                 fUpdated = true;
             }
+            if (fYield) break;
             this.xPos = this.xLeft; this.colPos = 0;
-            this.yPos -= this.yInc; this.rowPos++
+            this.yPos -= this.yInc; this.rowPos++;
+            xDirty = 0; cxDirty = this.gridWidth;
+            cyDirty++;
         }
         if (fUpdated) {
-            this.drawGrid();
+            if (!cyDirty) cyDirty++;
+            this.drawGrid(xDirty, yDirty, cxDirty, cyDirty);
         }
         return fUpdated;
     }
 
     /**
-     * drawGrid()
-     *
-     * NOTE: The "dirty" values below are set to encompass the entire grid; there's currently no calculation
-     * of the largest changed ("dirty") region.
+     * drawGrid(xDirty, yDirty, cxDirty, cyDirty)
      *
      * @this {Viewport}
+     * @param {number} [xDirty]
+     * @param {number} [yDirty]
+     * @param {number} [cxDirty]
+     * @param {number} [cyDirty]
      */
-    drawGrid()
+    drawGrid(xDirty = 0, yDirty = 0, cxDirty = this.gridWidth, cyDirty = this.gridHeight)
     {
-        let xDirty = 0;
-        let yDirty = 0;
-        let cxDirty = this.gridWidth;
-        let cyDirty = this.gridHeight;
         this.contextGrid.putImageData(this.imageGrid, 0, 0, xDirty, yDirty, cxDirty, cyDirty);
         this.contextView.drawImage(this.canvasGrid, 0, 0, this.gridWidth, this.gridHeight, 0, 0, this.viewWidth, this.viewHeight);
     }
