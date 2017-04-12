@@ -50,3 +50,9 @@ BigNumber.prototype.dividedBy = function(value, base){};
  * @return {boolean}
  */
 BigNumber.prototype.lt = function(value, base){};
+
+/**
+ * @this {BigNumber}
+ * @return {number}
+ */
+BigNumber.prototype.toNumber = function(){};

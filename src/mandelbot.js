@@ -34,7 +34,7 @@ let iNextViewport = 0;
  * @property {number} nColorScheme
  * @property {number} nMaxIterations
  * @property {string} statusMessage
- * @property {Array.<number|BigNumber>} aResults
+ * @property {Array.<number>} aResults
  * @property {HTMLCanvasElement} canvasView
  * @property {number} viewWidth
  * @property {number} viewHeight
@@ -62,7 +62,7 @@ class Viewport {
      * but may differ if a different aspect ratio or scaling effect is desired.  See initView() and initGrid().
      *
      * Rather than add more parameters to an already parameter-filled constructor, we will detect when the caller
-     * wants to use BigNumbers by virtue of the x,y parameters containing strings instead of numbers.
+     * wants to use BigNumbers by virtue of the (x,y) parameters containing strings instead of numbers.
      *
      * @this {Viewport}
      * @param {string} idCanvas (the id of an existing view canvas; required)
@@ -282,7 +282,7 @@ class Viewport {
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
      * @this {Viewport}
-     * @param {Array.<number|BigNumber>} aResults
+     * @param {Array.<number>} aResults
      * @return {number}
      */
     getColor(aResults)
@@ -384,32 +384,31 @@ class Viewport {
      * @param {number|BigNumber} x
      * @param {number|BigNumber} y
      * @param {number} [nMax] (iterations)
-     * @param {Array.<number|BigNumber>} [aResults] (optional buffer to return additional data)
+     * @param {Array.<number>} [aResults] (optional buffer to return additional data)
      * @return {number} (of iterations remaining, 0 if presumed to be in the Mandelbrot set)
      */
     static isMandelbrot(x, y, nMax, aResults)
     {
         nMax = nMax || nMaxIterationsPerNumber;
         let n = nMax;
-
-        let a, b, ta, tb, m;
+        let aa = 0, bb = 0;
         if (typeof x == "number") {
-            a = 0; b = 0; ta = 0; tb = 0;
+            let a = 0, b = 0, m;
             do {
                 b = 2 * a * b + y;
-                a = ta - tb + x;
-                m = (ta = a * a) + (tb = b * b);
+                a = aa - bb + x;
+                m = (aa = a * a) + (bb = b * b);
             } while (--n > 0 && m < 4);
             if (n && aResults) {
                 let l = 4;  // iterate a few (4) more times to provide more detail; see http://linas.org/art-gallery/escape/escape.html
                 do {
                     b = 2 * a * b + y;
-                    a = ta - tb + x;
-                    ta = a * a; tb = b * b;
+                    a = aa - bb + x;
+                    aa = a * a; bb = b * b;
                 } while (--l > 0);
             }
         } else {
-            a = new BigNumber(0); b = new BigNumber(0); ta = new BigNumber(0); tb = new BigNumber(0);
+            let a = new BigNumber(0), b = new BigNumber(0), ta = new BigNumber(0), tb = new BigNumber(0), m;
             do {
                 b = a.times(b).times(2).plus(y);
                 a = ta.minus(tb).plus(x);
@@ -423,6 +422,8 @@ class Viewport {
                     ta = a.times(a);
                     tb = b.times(b);
                 } while (--l > 0);
+                aa = ta.toNumber();
+                bb = tb.toNumber();
             }
         }
         /*
@@ -439,8 +440,8 @@ class Viewport {
         if (aResults) {
             aResults[0] = nMax;
             aResults[1] = n;
-            aResults[2] = ta;
-            aResults[3] = tb;
+            aResults[2] = aa;
+            aResults[3] = bb;
         }
         return n;
     }
@@ -495,7 +496,7 @@ class Viewport {
      * Copyright 2012 by Christian Stigen Larsen.
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
-     * @param {Array.<number|BigNumber>} aResults
+     * @param {Array.<number>} aResults
      * @return {number}
      */
     static getSmoothColor(aResults)
