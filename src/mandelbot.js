@@ -40,8 +40,8 @@ class Viewport {
      * @param {number} [xCenter] (the x coordinate of the center of the initial image; default is -0.5)
      * @param {number} [yCenter] (the y coordinate of the center of the initial image; default is 0)
      * @param {number} [xDistance] (the distance from xCenter to the right and left sides of the initial image; default is 1.5)
-     * @param {number} [yDistance] (the distance from yCenter to the top and bottom of the initial image; default is xDistance)
-     * @param {number} [colorScheme] (one of the Viewport.COLORSCHEME values)
+     * @param {number} [yDistance] (the distance from yCenter to the top and bottom of the initial image; default is 1.5)
+     * @param {number} [colorScheme] (one of the Viewport.COLORSCHEME values; default is GRAY)
      * @param {string} [idStatus] (the id of an existing status control, if any)
      */
     constructor(idCanvas, gridWidth = 0, gridHeight = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, colorScheme, idStatus)
