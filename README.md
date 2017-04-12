@@ -86,7 +86,7 @@ And then each Mandelbot can be added with just an *id* parameter:
 
 Viewports support the following properties:
 
-- *id*: a unique identifier for the viewport; it is also the *id* of the generated `<canvas>` element
+- *id*: the unique *id* to use for the generated `<canvas>` element
 - *viewWidth*: the width of the viewport canvas, in pixels (default: 200)
 - *viewHeight*: the height of the viewport canvas, in pixels (default: 200)
 - *gridWidth*: the width of the grid canvas on which numbers will plotted, in pixels (default: viewWidth)
@@ -97,7 +97,7 @@ Viewports support the following properties:
 - *yCenter*: the y coordinate of the center of the initial image (default: 0)
 - *xDistance*: the distance from xCenter to the right and left sides of the initial image (default: 1.5)
 - *yDistance*: the distance from yCenter to the top and bottom of the initial image (default: xDistance)
-- *colorScheme*: one of the Viewport.COLORSCHEME values (default: undefined; ie, a B&W image)
+- *colorScheme*: one of the Viewport.COLORSCHEME values (default: GRAY)
 - *idStatus*: a unique identifier for a text-based status control; if omitted, no control is generated
 
 *gridWidth* and *gridHeight* determine the resolution of the image to be calculated, while *viewWidth* and *viewHeight*
