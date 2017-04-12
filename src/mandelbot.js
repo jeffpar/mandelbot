@@ -13,7 +13,6 @@
 let idTimeout = 0;
 let msTimeslice = (1000 / 60)|0;
 let nMaxIterationsPerNumber = 100;      // default maximum iterations
-let nMaxIterationsPerViewport;          // this is updated by addViewport()
 let nMaxIterationsPerTimeslice;         // this is updated by calibrate()
 let activeViewports = [];
 let iNextViewport = 0;
@@ -34,11 +33,11 @@ class Viewport {
      * @param {string} idCanvas (the id of an existing view canvas; required)
      * @param {number} [gridWidth] (grid canvas width; default is view canvas width)
      * @param {number} [gridHeight] (grid canvas height; default is view canvas height)
-     * @param {number} [xCenter]
-     * @param {number} [yCenter]
-     * @param {number} [xDistance]
-     * @param {number} [yDistance]
-     * @param {number} [colorScheme]
+     * @param {number} [xCenter] (the center of the image to plot)
+     * @param {number} [yCenter] (the center of the image to plot)
+     * @param {number} [xDistance] (absolute value of distance from xCenter to plot)
+     * @param {number} [yDistance] (absolute value of distance from yCenter to plot)
+     * @param {number} [colorScheme] (one of the Viewport.COLORSCHEME values)
      * @param {string} [idStatus] (the id of an existing status control, if any)
      */
     constructor(idCanvas, gridWidth = 0, gridHeight = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, colorScheme, idStatus)
@@ -162,7 +161,7 @@ class Viewport {
         let xDirty = this.colPos;
         let yDirty = this.rowPos;
         let cxDirty = 0, cyDirty = 0;
-        let nMaxIterationsUpdate = nMaxIterationsPerViewport;
+        let nMaxIterationsUpdate = Math.floor(nMaxIterationsPerTimeslice / activeViewports.length);
         while (this.rowPos < this.gridHeight) {
             while (nMaxIterationsUpdate > 0 && this.colPos < this.gridWidth) {
                 let m = this.nMaxIterations;
@@ -231,15 +230,16 @@ class Viewport {
      */
     getColor(aResults)
     {
-        let nRGB = 0;
+        let nRGB = 0;           // 0 is black (0x000000), used for numbers in the Mandelbrot set
 
-        if (aResults[1]) {
+        if (aResults[1]) {      // if the number is NOT in the Mandelbrot set, then choose another color
 
             let v = Viewport.getSmoothColor(aResults);
 
             switch (this.colorScheme) {
             case Viewport.COLORSCHEME.BW:
-                nRGB = -1;
+            default:
+                nRGB = -1;      // -1 is white (0xffffff)
                 break;
             case Viewport.COLORSCHEME.HSV1:
                 nRGB = Viewport.getRGBFromHSV(360 * v / aResults[0], 1.0, 1.0);
@@ -273,8 +273,7 @@ class Viewport {
      */
     getMaxIterations()
     {
-        let f = Math.sqrt(0.001 + 4.0 * Math.min(this.xDistance, this.yDistance));
-        return Math.floor(223.0 / f);
+        return Math.floor(223.0 / Math.sqrt(0.001 + 4.0 * Math.min(this.xDistance, this.yDistance)));
     }
 
     /**
@@ -480,7 +479,6 @@ function initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistan
 function addViewport(viewport)
 {
     activeViewports.push(viewport);
-    nMaxIterationsPerViewport = Math.floor(nMaxIterationsPerTimeslice / activeViewports.length);
     updateViewports(true);
 }
 
