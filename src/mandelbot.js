@@ -167,8 +167,8 @@ class Viewport {
         let nMaxIterationsTotal = nMaxIterationsPerViewport;
         while (this.rowPos < this.gridHeight) {
             while (nMaxIterationsTotal > 0 && this.colPos < this.gridWidth) {
-                var m = this.nMaxIterations;
-                var n = Viewport.isMandelbrot(this.xPos, this.yPos, m, this.aResults);
+                let m = this.nMaxIterations;
+                let n = Viewport.isMandelbrot(this.xPos, this.yPos, m, this.aResults);
                 this.setGridPixel(this.rowPos, this.colPos, this.getColor(this.aResults));
                 this.xPos += this.xInc; this.colPos++;
                 if (!cyDirty) cxDirty++;
@@ -456,28 +456,31 @@ function addViewport(viewport)
 {
     activeViewports.push(viewport);
     nMaxIterationsPerViewport = Math.floor(nMaxIterationsPerTimeslice / activeViewports.length);
-    if (idTimeout == null) updateViewports();
+    updateViewports(true);
 }
 
 /**
- * updateViewports()
+ * updateViewports(fInit)
  *
- * setTimeout() handler for updating all added Viewports.  addViewport() does this automatically if no update has been scheduled.
+ * setTimeout() handler for updating all Viewports.  addViewport() does this automatically to ensure an update has been scheduled.
+ *
+ * @param {boolean} [fInit]
  */
-function updateViewports()
+function updateViewports(fInit)
 {
-    idTimeout = null;
-    let fUpdated = false;
-    let nViewports = activeViewports.length;
-    while (nViewports--) {
-        let viewport = activeViewports[iNextViewport];
-        if (viewport.updateGrid()) fUpdated = true;
-        if (++iNextViewport >= activeViewports.length) iNextViewport = 0;
+    if (!fInit) {
+        idTimeout = null;
+        let nViewports = activeViewports.length;
+        while (nViewports--) {
+            let viewport = activeViewports[iNextViewport];
+            if (viewport.updateGrid()) fInit = true;
+            if (++iNextViewport >= activeViewports.length) iNextViewport = 0;
+        }
     }
     /*
      * Schedule a new call for immediate execution if there were any updates (otherwise, we assume all our work is done).
      */
-    if (fUpdated) {
+    if (fInit && idTimeout == null) {
         idTimeout = setTimeout(updateViewports, 0);
     }
 }
