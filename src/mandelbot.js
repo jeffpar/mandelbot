@@ -252,7 +252,8 @@ class Viewport {
                 }
                 break;
             case 4:     // GREYSCALE
-                v = Math.floor(512.0 * v / aResults[0]) & 0xff;
+                v = Math.floor(512.0 * v / aResults[0]);
+                if (v > 0xff) v = 0xff;
                 nRGB = v | (v << 8) | (v << 16);
                 break;
             }
