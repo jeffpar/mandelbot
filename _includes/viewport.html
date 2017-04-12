@@ -43,7 +43,7 @@ Any property definition in the include tag overrides that property definition in
 {% assign idStatus = include.idStatus | default: view.idStatus | default: '' %}
 {% capture parms %}"{{ include.id }}",{{ gridWidth }},{{ gridHeight }},{{ xCenter }},{{ yCenter }},{{ xDistance }},{{ yDistance }},{{ colorScheme }},"{{ idStatus }}"{% endcapture %}
 <canvas class="mandelbot-viewport" id="{{ include.id }}" width="{{ viewWidth }}" height="{{ viewHeight }}" style="{{ viewStyle }}"></canvas>
-{% if include.idStatus %}
+{% if idStatus != '' %}
 <p class="mandelbot-status" id="{{ idStatus }}">No status</p>
 {% endif %}
 <script type="text/javascript">initViewport({{ parms }});</script>
