@@ -14,6 +14,8 @@
 
 "use strict";
 
+// import * as BigNumber from "./bignumber/bignumber";
+
 let idTimeout = 0;
 let msTimeslice = (1000 / 60)|0;
 let nMaxIterationsPerNumber = 100;      // default maximum iterations
@@ -24,6 +26,32 @@ let iNextViewport = 0;
 /**
  * @class Viewport
  * @unrestricted
+ * @property {boolean} fBigNumbers
+ * @property {number|BigNumber} xCenter
+ * @property {number|BigNumber} yCenter
+ * @property {number|BigNumber} xDistance
+ * @property {number|BigNumber} yDistance
+ * @property {number} nColorScheme
+ * @property {number} nMaxIterations
+ * @property {string} statusMessage
+ * @property {Array.<number|BigNumber>} aResults
+ * @property {HTMLCanvasElement} canvasView
+ * @property {number} viewWidth
+ * @property {number} viewHeight
+ * @property {CanvasRenderingContext2D} contextView
+ * @property {ImageData} imageGrid
+ * @property {HTMLCanvasElement} canvasGrid
+ * @property {number} gridWidth
+ * @property {number} gridHeight
+ * @property {CanvasRenderingContext2D} contextGrid
+ * @property {number} colPos
+ * @property {number} rowPos
+ * @property {number|BigNumber} xLeft
+ * @property {number|BigNumber} xInc
+ * @property {number|BigNumber} yTop
+ * @property {number|BigNumber} xInc
+ * @property {number|BigNumber} xPos
+ * @property {number|BigNumber} yPos
  */
 class Viewport {
     /**
@@ -33,27 +61,39 @@ class Viewport {
      * creates the internal Grid canvas using the supplied dimensions, which usually match the View canvas dimensions
      * but may differ if a different aspect ratio or scaling effect is desired.  See initView() and initGrid().
      *
+     * Rather than add more parameters to an already parameter-filled constructor, we will detect when the caller
+     * wants to use BigNumbers by virtue of the x,y parameters containing strings instead of numbers.
+     *
      * @this {Viewport}
      * @param {string} idCanvas (the id of an existing view canvas; required)
      * @param {number} [gridWidth] (grid canvas width; default is view canvas width)
      * @param {number} [gridHeight] (grid canvas height; default is view canvas height)
-     * @param {number} [xCenter] (the x coordinate of the center of the initial image; default is -0.5)
-     * @param {number} [yCenter] (the y coordinate of the center of the initial image; default is 0)
-     * @param {number} [xDistance] (the distance from xCenter to the right and left sides of the initial image; default is 1.5)
-     * @param {number} [yDistance] (the distance from yCenter to the top and bottom of the initial image; default is 1.5)
+     * @param {number|string} [xCenter] (the x coordinate of the center of the initial image; default is -0.5)
+     * @param {number|string} [yCenter] (the y coordinate of the center of the initial image; default is 0)
+     * @param {number|string} [xDistance] (the distance from xCenter to the right and left sides of the initial image; default is 1.5)
+     * @param {number|string} [yDistance] (the distance from yCenter to the top and bottom of the initial image; default is 1.5)
      * @param {number} [colorScheme] (one of the Viewport.COLORSCHEME values; default is GRAY)
      * @param {string} [idStatus] (the id of an existing status control, if any)
      */
     constructor(idCanvas, gridWidth = 0, gridHeight = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, colorScheme, idStatus)
     {
-        this.xCenter = xCenter;
-        this.yCenter = yCenter;
-        this.xDistance = Math.abs(xDistance);
-        this.yDistance = Math.abs(yDistance);
-        this.aResults = [0, 0, 0, 0];
+        this.fBigNumbers = false;
+        if (typeof xCenter == "number") {
+            this.xCenter = xCenter;
+            this.yCenter = yCenter;
+            this.xDistance = Math.abs(xDistance);
+            this.yDistance = Math.abs(yDistance);
+        } else {
+            this.fBigNumbers = true;
+            this.xCenter = new BigNumber(xCenter);
+            this.yCenter = new BigNumber(yCenter);
+            this.xDistance = new BigNumber(xDistance).abs();
+            this.yDistance = new BigNumber(yDistance).abs();
+        }
         this.colorScheme = (colorScheme !== undefined? colorScheme : Viewport.COLORSCHEME.GRAY);
         this.nMaxIterations = this.getMaxIterations();  // formerly hard-coded to nMaxIterationsPerNumber
         this.statusMessage = "X: " + this.xCenter + " (+/-" + this.xDistance + ") Y: " + this.yCenter + " (+/-" + this.yDistance + ") Iterations: " + this.nMaxIterations;
+        this.aResults = [0, 0, 0, 0];
         try {
             /*
              * Why the try/catch?  Bad things CAN happen here; for example, bogus dimensions can cause
@@ -68,9 +108,7 @@ class Viewport {
         }
         if (idStatus) {
             this.status = document.getElementById(idStatus);
-            if (this.status) {
-                this.status.innerHTML = this.statusMessage;     // new BigNumber(42).toString();
-            }
+            if (this.status) this.status.textContent = this.statusMessage;
         }
     }
 
@@ -118,7 +156,7 @@ class Viewport {
     {
         this.imageGrid = this.contextView.createImageData(gridWidth, gridHeight);
         if (this.imageGrid) {
-            this.canvasGrid = document.createElement("canvas");
+            this.canvasGrid = /** @type {HTMLCanvasElement} */ (document.createElement("canvas"));
             if (this.canvasGrid) {
                 this.canvasGrid.width = this.gridWidth = gridWidth;
                 this.canvasGrid.height = this.gridHeight = gridHeight;
@@ -143,18 +181,25 @@ class Viewport {
     prepGrid()
     {
         this.colPos = this.rowPos = 0;
-        this.xLeft = this.xCenter - this.xDistance;
-        this.xInc = (this.xDistance * 2) / this.gridWidth;
-        this.yTop = this.yCenter + this.yDistance;
-        this.yInc = (this.yDistance * 2) / this.gridHeight;
-        this.xPos = this.xLeft;
-        this.yPos = this.yTop;
+        if (!this.fBigNumbers) {
+            this.xLeft = this.xCenter - this.xDistance;
+            this.xInc = (this.xDistance * 2) / this.gridWidth;
+            this.yTop = this.yCenter + this.yDistance;
+            this.yInc = (this.yDistance * 2) / this.gridHeight;
+            this.xPos = this.xLeft;
+            this.yPos = this.yTop;
+        } else {
+            this.xLeft = this.xCenter.minus(this.xDistance);
+            this.xInc = this.xDistance.times(2).dividedBy(this.gridWidth);
+            this.yTop = this.yCenter.plus(this.yDistance);
+            this.yInc = this.yDistance.times(2).dividedBy(this.gridHeight);
+        }
     }
 
     /**
      * updateGrid()
      *
-     * Continues updating the Viewport's grid at the point where the last call left off.
+     * Continues updating the Viewport's grid where we left off.
      *
      * @this {Viewport}
      * @return {boolean} (true if grid was updated, false if no change)
@@ -162,45 +207,53 @@ class Viewport {
     updateGrid()
     {
         let fUpdated = false;
-        let xDirty = this.colPos;
-        let yDirty = this.rowPos;
-        let cxDirty = 0, cyDirty = 0;
+        let colDirty = this.colPos;
+        let rowDirty = this.rowPos;
+        let colsDirty = 0, rowsDirty = 0;
         let nMaxIterationsUpdate = Math.floor(nMaxIterationsPerTimeslice / activeViewports.length);
         while (this.rowPos < this.gridHeight) {
             while (nMaxIterationsUpdate > 0 && this.colPos < this.gridWidth) {
                 let m = this.nMaxIterations;
                 let n = Viewport.isMandelbrot(this.xPos, this.yPos, m, this.aResults);
                 this.setGridPixel(this.rowPos, this.colPos, this.getColor(this.aResults));
-                this.xPos += this.xInc; this.colPos++;
-                if (!cyDirty) cxDirty++;
+                if (!this.fBigNumbers) {
+                    this.xPos += this.xInc;
+                } else {
+                    this.xPos = this.xPos.plus(this.xInc);
+                }
+                this.colPos++;
+                if (!rowsDirty) colsDirty++;
                 nMaxIterationsUpdate -= (m - n);
                 fUpdated = true;
             }
             if (nMaxIterationsUpdate <= 0) break;
-            this.xPos = this.xLeft; this.colPos = 0;
-            this.yPos -= this.yInc; this.rowPos++;
-            xDirty = 0; cxDirty = this.gridWidth;
-            cyDirty++;
+            this.xPos = this.xLeft;
+            this.colPos = 0;
+            if (!this.fBigNumbers) {
+                this.yPos -= this.yInc;
+            } else {
+                this.yPos = this.yPos.minus(this.yInc);
+            }
+            this.rowPos++;
+            rowsDirty++;
+            colDirty = 0; colsDirty = this.gridWidth;
         }
-        if (fUpdated) {
-            if (!cyDirty) cyDirty++;
-            this.drawGrid(xDirty, yDirty, cxDirty, cyDirty);
-        }
+        if (fUpdated) this.drawGrid(colDirty, rowDirty, colsDirty, rowsDirty || 1);
         return fUpdated;
     }
 
     /**
-     * drawGrid(xDirty, yDirty, cxDirty, cyDirty)
+     * drawGrid(colDirty, rowDirty, colsDirty, rowsDirty)
      *
      * @this {Viewport}
-     * @param {number} [xDirty]
-     * @param {number} [yDirty]
-     * @param {number} [cxDirty]
-     * @param {number} [cyDirty]
+     * @param {number} [colDirty]
+     * @param {number} [rowDirty]
+     * @param {number} [colsDirty]
+     * @param {number} [rowsDirty]
      */
-    drawGrid(xDirty = 0, yDirty = 0, cxDirty = this.gridWidth, cyDirty = this.gridHeight)
+    drawGrid(colDirty = 0, rowDirty = 0, colsDirty = this.gridWidth, rowsDirty = this.gridHeight)
     {
-        this.contextGrid.putImageData(this.imageGrid, 0, 0, xDirty, yDirty, cxDirty, cyDirty);
+        this.contextGrid.putImageData(this.imageGrid, 0, 0, colDirty, rowDirty, colsDirty, rowsDirty);
         this.contextView.drawImage(this.canvasGrid, 0, 0, this.gridWidth, this.gridHeight, 0, 0, this.viewWidth, this.viewHeight);
     }
 
@@ -221,7 +274,7 @@ class Viewport {
         this.imageGrid.data[i+3] = 0xff;
     }
 
-    /*
+    /**
      * getColor(aResults)
      *
      * Adapted from code in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
@@ -229,7 +282,7 @@ class Viewport {
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
      * @this {Viewport}
-     * @param {Array.<number>} aResults
+     * @param {Array.<number|BigNumber>} aResults
      * @return {number}
      */
     getColor(aResults)
@@ -328,21 +381,50 @@ class Viewport {
      *      according to how rapidly the sequence z^2 + c diverges, with the color 0 (black) usually used for points
      *      where the sequence does not diverge.
      *
-     * @param {number} x
-     * @param {number} y
+     * @param {number|BigNumber} x
+     * @param {number|BigNumber} y
      * @param {number} [nMax] (iterations)
-     * @param {Array.<number>} [aResults] (optional buffer to return additional data)
+     * @param {Array.<number|BigNumber>} [aResults] (optional buffer to return additional data)
      * @return {number} (of iterations remaining, 0 if presumed to be in the Mandelbrot set)
      */
     static isMandelbrot(x, y, nMax, aResults)
     {
         nMax = nMax || nMaxIterationsPerNumber;
-        let a = 0, b = 0, ta = 0, tb = 0, m, n = nMax;
-        do {
-            b = 2 * a * b + y;
-            a = ta - tb + x;
-            m = (ta = a * a) + (tb = b * b);
-        } while (--n > 0 && m < 4);
+        let n = nMax;
+
+        let a, b, ta, tb, m;
+        if (typeof x == "number") {
+            a = 0; b = 0; ta = 0; tb = 0;
+            do {
+                b = 2 * a * b + y;
+                a = ta - tb + x;
+                m = (ta = a * a) + (tb = b * b);
+            } while (--n > 0 && m < 4);
+            if (n && aResults) {
+                let l = 4;  // iterate a few (4) more times to provide more detail; see http://linas.org/art-gallery/escape/escape.html
+                do {
+                    b = 2 * a * b + y;
+                    a = ta - tb + x;
+                    ta = a * a; tb = b * b;
+                } while (--l > 0);
+            }
+        } else {
+            a = new BigNumber(0); b = new BigNumber(0); ta = new BigNumber(0); tb = new BigNumber(0);
+            do {
+                b = a.times(b).times(2).plus(y);
+                a = ta.minus(tb).plus(x);
+                ta = a.times(a); tb = b.times(b); m = ta.plus(tb);
+            } while (--n > 0 && m.lt(4));
+            if (n && aResults) {
+                let l = 4;  // iterate a few (4) more times to provide more detail; see http://linas.org/art-gallery/escape/escape.html
+                do {
+                    b = a.times(b).times(2).plus(y);
+                    a = ta.minus(tb).plus(x);
+                    ta = a.times(a);
+                    tb = b.times(b);
+                } while (--l > 0);
+            }
+        }
         /*
          * If a results array is provided, we fill it in with:
          *
@@ -357,17 +439,6 @@ class Viewport {
         if (aResults) {
             aResults[0] = nMax;
             aResults[1] = n;
-            /*
-             * We iterate a few (4) more times to provide more detail; see http://linas.org/art-gallery/escape/escape.html
-             */
-            if (n) {
-                n = 4;
-                do {
-                    b = 2 * a * b + y;
-                    a = ta - tb + x;
-                    ta = a * a; tb = b * b;
-                } while (--n > 0);
-            }
             aResults[2] = ta;
             aResults[3] = tb;
         }
@@ -424,7 +495,7 @@ class Viewport {
      * Copyright 2012 by Christian Stigen Larsen.
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
-     * @param {Array.<number>} aResults
+     * @param {Array.<number|BigNumber>} aResults
      * @return {number}
      */
     static getSmoothColor(aResults)
