@@ -125,7 +125,7 @@ JavaScript files via a [WebStorm](https://www.jetbrains.com/webstorm/) File Watc
 
 	node_modules/google-closure-compiler/compiler.jar --compilation_level ADVANCED_OPTIMIZATIONS \
 	--create_source_map $FileName$.map --output_wrapper "(function(){%output%})() //# sourceMappingURL=/src/$FileName$.map" \
-	--js $FileName$ --js_output_file $FileNameWithoutExtension$.min.js
+	--externs externs.js --js $FileName$ --js_output_file $FileNameWithoutExtension$.min.js
 
 Both the original and minified JavaScript [source files](/src/) are checked into the project, so this may be of little interest
 unless you plan to modify the JavaScript files, in which case you can install the Closure Compiler and other assorted development
