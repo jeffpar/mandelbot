@@ -445,12 +445,12 @@ class Viewport {
          * but to avoid a sqrt() operation, we can simply calculate m = (a * a) + (b * b) and compare that to 4 instead.
          *
          * TODO: I need to find something conclusive regarding whether the "escape" criteria is >= 2 or > 2.  The code
-         * below assumes the former, and the original Scientific American article from August 1985 says:
+         * assumes the former, in part because this is what the original Scientific American article from August 1985 said:
          *
          *      A straightforward result in the theory of complex-number iterations guarantees that the iterations
          *      will drive z to infinity if and only if at some stage z reaches a size of 2 or greater.
          *
-         * so I'm sticking with that.
+         * so I'm sticking with that (although, admittedly, the article is not 100% consistent on this point).
          */
         let aa = 0, bb = 0;
         if (typeof x == "number") {
