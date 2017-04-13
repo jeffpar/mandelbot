@@ -16,10 +16,13 @@ An assortment of old related Pascal, C, and 8088 assembly-language code that I w
 Installation
 ------------
 
-This project has already been installed at [mandelbot.net](http://mandelbot.net/) using
+This project has already been installed at [Mandelbot website](http://mandelbot.net/) using
 [GitHub Pages](https://pages.github.com/) and the [gh-pages](https://github.com/jeffpar/mandelbot/tree/gh-pages)
-branch of this project.  If you want to install and serve your own local copies of the files, here are the steps
-for macOS and the corresponding Terminal commands.
+branch of this project.  The website is constructed using [Jekyll](https://jekyllrb.com/) and a collection of
+[Markdown](https://daringfireball.net/projects/markdown/) documents.
+
+If you want to install and serve your own local copies of all the files, here are the steps for macOS and the
+corresponding Terminal commands.
 
 ##### Step 1: Clone the project.
 
@@ -63,13 +66,13 @@ Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll
 Operation
 ---------
 
-Mandelbots are added to [Jekyll](https://jekyllrb.com/) Markdown documents on the [Mandelbot website](http://mandelbot.net)
+Mandelbots are added to [Jekyll](https://jekyllrb.com/) documents on the [Mandelbot website](http://mandelbot.net)
 using the [Viewport](_includes/viewport.html) include file:
 
 	{% include viewport.html id="mandelbot1" viewWidth="200" viewHeight="200" %}
 	
 For documents containing multiple Mandelbots, it may be more convenient to define each viewport's configuration parameters
-at the top of the Markdown document, inside the document's [Front Matter](https://jekyllrb.com/docs/frontmatter/):
+at the top of the document, inside the document's [Front Matter](https://jekyllrb.com/docs/frontmatter/):
 
 	---
 	...
