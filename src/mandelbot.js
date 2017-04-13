@@ -18,9 +18,9 @@
 
 let idTimeout = 0;
 let msTimeslice = (1000 / 60)|0;
-let nMaxIterationsPerNumber = 100;      // default maximum iterations
-let nMaxIterationsPerTimeslice;         // this is updated by calibrate()
-let nMaxBigIterationsPerTimeslice;      // this is updated by calibrate()
+let nMaxIterationsPerNumber = 100;      // default maximum iterations per number
+let nMaxIterationsPerTimeslice;         // updated by a one-time call to calibrate(), using normal numbers
+let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibrate(), using BigNumbers instead
 let activeViewports = [];
 let iNextViewport = 0;
 
@@ -62,6 +62,11 @@ class Viewport {
      * creates the internal Grid canvas using the supplied dimensions, which usually match the View canvas dimensions
      * but may differ if a different aspect ratio or scaling effect is desired.  See initView() and initGrid().
      *
+     * Any of the four x,y coordinate parameters can be specified as numbers OR strings, because strings may be needed
+     * to represent BigNumbers that can't be expressed as a 64-bit floating-point numbers.  If bigNumbers is true, then
+     * those parameters are passed through to the BigNumber constructor as-is; otherwise, those parameters are coerced
+     * to numbers using the unary "plus" operator.
+     *
      * @this {Viewport}
      * @param {string} idCanvas (the id of an existing view canvas; required)
      * @param {number} [gridWidth] (grid canvas width; default is view canvas width)
@@ -77,6 +82,12 @@ class Viewport {
     constructor(idCanvas, gridWidth = 0, gridHeight = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, bigNumbers = false, colorScheme, idStatus)
     {
         if (!bigNumbers) {
+            /*
+             * Since the x,y parameters are allowed to be numbers OR strings, and since BigNumber support was
+             * not requested, we coerce those parameters to numbers using the unary "plus" operator; if they are
+             * are already numeric values, the operator has no effect, and if any value was negative, don't worry,
+             * it will remain negative.
+             */
             this.xCenter = +xCenter;
             this.yCenter = +yCenter;
             this.xDistance = Math.abs(+xDistance);
@@ -199,7 +210,8 @@ class Viewport {
     /**
      * updateGrid()
      *
-     * Continues updating the Viewport's grid where we left off.
+     * Continues updating the Viewport's grid where we left off, until either the entire grid has been updated OR
+     * we have exhausted the maximum number of iterations allowed for the current timeslice.
      *
      * @this {Viewport}
      * @return {boolean} (true if grid was updated, false if no change)
@@ -379,7 +391,7 @@ class Viewport {
      *
      * This is where the magic happens.  As https://en.wikipedia.org/wiki/Mandelbrot_set explains:
      *
-     *      The Mandelbrot set is the set of complex numbers c for which the function f(z) = z^2 +c does not
+     *      The Mandelbrot set is the set of complex numbers c for which the function f(z) = z^2 + c does not
      *      diverge when iterated from z = 0.
      *
      *      Mandelbrot set images may be created by sampling the complex numbers and determining, for each sample
@@ -398,6 +410,48 @@ class Viewport {
     {
         nMax = nMax || nMaxIterationsPerNumber;
         let n = nMax;
+        /*
+         * We can restate the Mandelbrot function described above as:
+         *
+         *      z{n+1} = z{n}^2 + c
+         *
+         * where z is a complex number of the form (a + bi), where a and b are real and imaginary coefficients;
+         * ditto for c.  z{0} is (0 + 0i) and coefficients for c are given to us: (x + yi).
+         *
+         * The n+1 iteration requires that we calculate the square of the nth iteration, which means squaring (a + bi):
+         *
+         *      (a + bi) * (a + bi)
+         *
+         * which expands to:
+         *
+         *      (a * a) + (2 * a * b * i) + (b * i * b * i)
+         *
+         * which can be simplified to this (since i * i = -1):
+         *
+         *      (a * a) + (2 * a * b * i) - (b * b)
+         *
+         * So the real and imaginary coefficients for z{n+1}, after adding c, which is (x + yi), are:
+         *
+         *      a{n+1} = (a * a) - (b * b) + x
+         *      b{n+1} = (2 * a * b) + y
+         *
+         * We also need to know the magnitude of this result, because if the magnitude equals or exceeds 2, then the
+         * number is not part of the Mandelbrot set (ie, it has "escaped").
+         *
+         * The magnitude, m, comes from the Pythagorean theorem:
+         *
+         *      m = Math.sqrt(a^2 + b^2)
+         *
+         * but to avoid a sqrt() operation, we can simply calculate m = (a * a) + (b * b) and compare that to 4 instead.
+         *
+         * TODO: I need to find something conclusive regarding whether the "escape" criteria is >= 2 or > 2.  The code
+         * below assumes the former, and the original Scientific American article from August 1985 says:
+         *
+         *      A straightforward result in the theory of complex-number iterations guarantees that the iterations
+         *      will drive z to infinity if and only if at some stage z reaches a size of 2 or greater.
+         *
+         * so I'm sticking with that.
+         */
         let aa = 0, bb = 0;
         if (typeof x == "number") {
             let a = 0, b = 0, m;
@@ -580,7 +634,16 @@ function updateViewports(fInit)
         let nViewports = activeViewports.length;
         while (nViewports--) {
             let viewport = activeViewports[iNextViewport];
-            if (viewport.updateGrid()) fInit = true;
+            if (viewport.updateGrid()) {
+                /*
+                 * Since the grid was updated, we set the fInit flag to ensure that at least one more updateViewports()
+                 * call will be scheduled via setTimeout().  Even though it's possible that the grid was FULLY updated,
+                 * I'm happy to wait until the next updateViewports() call to find that out; updateGrid() will then report
+                 * there was nothing to update, and once ALL the grids on the page report the same thing, we'll stop
+                 * scheduling these calls.
+                 */
+                fInit = true;
+            }
             if (++iNextViewport >= activeViewports.length) iNextViewport = 0;
         }
     }
