@@ -6,8 +6,8 @@ goals include:
 
 - Make Mandelbots easy to use and configure (see [Configuration](#configuration))
 - Support multiple Mandelbots per page (see [Demo](http://mandelbot.net))
-- Build it using simple, easy-to-understand code (see [src/mandelbot.js](src/mandelbot.js))
-- Experiment with new technologies (eg, support for the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
+- Build it using simple, easy-to-understand code (see [mandelbot.js](src/mandelbot.js))
+- Experiment with new technologies (eg, the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
 	
 However, this is a work-in-progress, so there isn't a lot to see here yet.  I started the project as a diversion
 and an excuse to learn some new things, so bear with me.
