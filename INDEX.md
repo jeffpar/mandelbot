@@ -1,20 +1,21 @@
 ---
 permalink: /
 viewports:
-  - id: mandelbot1
+  - id: mandelbot5
     viewWidth: 1024
     viewHeight: 1024
     styleWidth: 100%
-    colorScheme: 4
-    idStatus: status1
+    colorScheme: 0
+    bigNumbers: true
+    idStatus: status5
 ---
 
 Welcome to Mandelbot
 --------------------
 
-{% comment %}This page demonstrates both predefined and inline viewport definitions{% endcomment %}  
+{% comment %}This page demonstrates both inline and predefined viewport definitions{% endcomment %}  
 
-{% include viewport.html id="mandelbot1" %}
+{% include viewport.html id="mandelbot1" viewWidth="1024" viewHeight="1024" styleWidth="100%" colorScheme="4" idStatus="status1" %}
 
 {% include viewport.html id="mandelbot2" viewWidth="1024" viewHeight="1024" styleWidth="100%" colorScheme="3" idStatus="status2" %}
 
@@ -22,4 +23,4 @@ Welcome to Mandelbot
 
 {% include viewport.html id="mandelbot4" viewWidth="1024" viewHeight="1024" styleWidth="100%" colorScheme="1" idStatus="status4" %}
 
-{% include viewport.html id="mandelbot5" viewWidth="1024" viewHeight="1024" styleWidth="100%" colorScheme="0" idStatus="status5" %}
+{% include viewport.html id="mandelbot5" %}

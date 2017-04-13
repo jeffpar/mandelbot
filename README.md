@@ -97,6 +97,7 @@ Viewports support the following properties:
 - *yCenter*: the y coordinate of the center of the initial image (default: 0)
 - *xDistance*: the distance from xCenter to the right and left sides of the initial image (default: 1.5)
 - *yDistance*: the distance from yCenter to the top and bottom of the initial image (default: xDistance)
+- *bigNumbers: true to use BigNumbers for all floating-point calculations (default: false)
 - *colorScheme*: one of the Viewport.COLORSCHEME values (default: GRAY)
 - *idStatus*: a unique identifier for a text-based status control; if omitted, no control is generated
 

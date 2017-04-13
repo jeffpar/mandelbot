@@ -20,18 +20,19 @@ let idTimeout = 0;
 let msTimeslice = (1000 / 60)|0;
 let nMaxIterationsPerNumber = 100;      // default maximum iterations
 let nMaxIterationsPerTimeslice;         // this is updated by calibrate()
+let nMaxBigIterationsPerTimeslice;      // this is updated by calibrate()
 let activeViewports = [];
 let iNextViewport = 0;
 
 /**
  * @class Viewport
  * @unrestricted
- * @property {boolean} fBigNumbers
+ * @property {boolean} bigNumbers
  * @property {number|BigNumber} xCenter
  * @property {number|BigNumber} yCenter
  * @property {number|BigNumber} xDistance
  * @property {number|BigNumber} yDistance
- * @property {number} nColorScheme
+ * @property {number} colorScheme
  * @property {number} nMaxIterations
  * @property {string} statusMessage
  * @property {Array.<number>} aResults
@@ -55,14 +56,11 @@ let iNextViewport = 0;
  */
 class Viewport {
     /**
-     * Viewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, colorScheme, idStatus)
+     * Viewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus)
      *
      * The constructor records information about the View canvas (eg, its dimensions, 2D context, etc), and then
      * creates the internal Grid canvas using the supplied dimensions, which usually match the View canvas dimensions
      * but may differ if a different aspect ratio or scaling effect is desired.  See initView() and initGrid().
-     *
-     * Rather than add more parameters to an already parameter-filled constructor, we will detect when the caller
-     * wants to use BigNumbers by virtue of the (x,y) parameters containing strings instead of numbers.
      *
      * @this {Viewport}
      * @param {string} idCanvas (the id of an existing view canvas; required)
@@ -72,27 +70,27 @@ class Viewport {
      * @param {number|string} [yCenter] (the y coordinate of the center of the initial image; default is 0)
      * @param {number|string} [xDistance] (the distance from xCenter to the right and left sides of the initial image; default is 1.5)
      * @param {number|string} [yDistance] (the distance from yCenter to the top and bottom of the initial image; default is 1.5)
+     * @param {boolean} [bigNumbers] (true to use BigNumbers for all floating-point calculations; default is false)
      * @param {number} [colorScheme] (one of the Viewport.COLORSCHEME values; default is GRAY)
      * @param {string} [idStatus] (the id of an existing status control, if any)
      */
-    constructor(idCanvas, gridWidth = 0, gridHeight = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, colorScheme, idStatus)
+    constructor(idCanvas, gridWidth = 0, gridHeight = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, bigNumbers = false, colorScheme, idStatus)
     {
-        this.fBigNumbers = false;
-        if (typeof xCenter == "number") {
-            this.xCenter = xCenter;
-            this.yCenter = yCenter;
-            this.xDistance = Math.abs(xDistance);
-            this.yDistance = Math.abs(yDistance);
+        if (!bigNumbers) {
+            this.xCenter = +xCenter;
+            this.yCenter = +yCenter;
+            this.xDistance = Math.abs(+xDistance);
+            this.yDistance = Math.abs(+yDistance);
         } else {
-            this.fBigNumbers = true;
             this.xCenter = new BigNumber(xCenter);
             this.yCenter = new BigNumber(yCenter);
             this.xDistance = new BigNumber(xDistance).abs();
             this.yDistance = new BigNumber(yDistance).abs();
         }
+        this.bigNumbers = bigNumbers;
         this.colorScheme = (colorScheme !== undefined? colorScheme : Viewport.COLORSCHEME.GRAY);
         this.nMaxIterations = this.getMaxIterations();  // formerly hard-coded to nMaxIterationsPerNumber
-        this.statusMessage = "X: " + this.xCenter + " (+/-" + this.xDistance + ") Y: " + this.yCenter + " (+/-" + this.yDistance + ") Iterations: " + this.nMaxIterations;
+        this.statusMessage = "X: " + this.xCenter + " (+/-" + this.xDistance + ") Y: " + this.yCenter + " (+/-" + this.yDistance + ") Iterations: " + this.nMaxIterations + (bigNumbers? " (BigNumbers)" : "");
         this.aResults = [0, 0, 0, 0];
         try {
             /*
@@ -181,7 +179,7 @@ class Viewport {
     prepGrid()
     {
         this.colPos = this.rowPos = 0;
-        if (!this.fBigNumbers) {
+        if (!this.bigNumbers) {
             this.xLeft = this.xCenter - this.xDistance;
             this.xInc = (this.xDistance * 2) / this.gridWidth;
             this.yTop = this.yCenter + this.yDistance;
@@ -212,25 +210,25 @@ class Viewport {
         let colDirty = this.colPos;
         let rowDirty = this.rowPos;
         let colsDirty = 0, rowsDirty = 0;
-        let nMaxIterationsUpdate = Math.floor(nMaxIterationsPerTimeslice / activeViewports.length);
+        let nMaxIterationsTotal = Math.floor((this.bigNumbers? nMaxBigIterationsPerTimeslice : nMaxIterationsPerTimeslice) / activeViewports.length);
         while (this.rowPos < this.gridHeight) {
-            while (nMaxIterationsUpdate > 0 && this.colPos < this.gridWidth) {
+            while (nMaxIterationsTotal > 0 && this.colPos < this.gridWidth) {
                 let m = this.nMaxIterations;
                 let n = Viewport.isMandelbrot(this.xPos, this.yPos, m, this.aResults);
                 this.setGridPixel(this.rowPos, this.colPos, this.getColor(this.aResults));
-                if (!this.fBigNumbers) {
+                if (!this.bigNumbers) {
                     this.xPos += this.xInc;
                 } else {
                     this.xPos = this.xPos.plus(this.xInc);
                 }
                 this.colPos++;
                 if (!rowsDirty) colsDirty++;
-                nMaxIterationsUpdate -= (m - n);
+                nMaxIterationsTotal -= (m - n);
                 fUpdated = true;
             }
-            if (nMaxIterationsUpdate <= 0) break;
+            if (nMaxIterationsTotal <= 0) break;
             this.colPos = 0;
-            if (!this.fBigNumbers) {
+            if (!this.bigNumbers) {
                 this.xPos = this.xLeft;
                 this.yPos -= this.yInc;
             } else {
@@ -340,7 +338,7 @@ class Viewport {
     }
 
     /**
-     * calibrate(nIterationsStart, nCalibrations, fBigNumbers)
+     * calibrate(nIterationsStart, nCalibrations, bigNumbers)
      *
      * Estimate how many isMandelbrot() iterations can be performed in TIMESLICE milliseconds.
      * The process starts by performing the half the default (maximum) number of iterations for
@@ -349,10 +347,10 @@ class Viewport {
      *
      * @param {number} [nIterationsStart]
      * @param {number} [nCalibrations]
-     * @param {boolean} [fBigNumbers]
+     * @param {boolean} [bigNumbers]
      * @return {number} (of operations to perform before yielding)
      */
-    static calibrate(nIterationsStart = 0, nCalibrations = 1, fBigNumbers = false)
+    static calibrate(nIterationsStart = 0, nCalibrations = 1, bigNumbers = false)
     {
         let nIterationsAvg = 0, nLoops = 0;
         do {
@@ -361,8 +359,8 @@ class Viewport {
             let nIterationsInc = (nMaxIterationsPerNumber / 2)|0;
             do {
                 nIterationsInc *= 2;
-                let x = fBigNumbers? new BigNumber(-0.5) : -0.5;
-                let y = fBigNumbers? new BigNumber(0) : 0;
+                let x = bigNumbers? new BigNumber(-0.5) : -0.5;
+                let y = bigNumbers? new BigNumber(0) : 0;
                 let n = Viewport.isMandelbrot(x, y, nIterationsStart + nIterationsInc);
                 msTotal = Date.now() - msStart;
                 if (msTotal >= msTimeslice) break;
@@ -528,9 +526,10 @@ Viewport.LOG_BASE = 1.0 / Math.log(2.0);
 Viewport.LOG_HALFBASE = Math.log(0.5) * Viewport.LOG_BASE;
 
 nMaxIterationsPerTimeslice = Viewport.calibrate(0, 8);
+nMaxBigIterationsPerTimeslice = Viewport.calibrate(0, 8, true);
 
 /**
- * initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, colorScheme, idStatus, fAutoUpdate)
+ * initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus, fAutoUpdate)
  *
  * Global function for creating new Viewports.
  *
@@ -541,17 +540,16 @@ nMaxIterationsPerTimeslice = Viewport.calibrate(0, 8);
  * @param {number} [yCenter]
  * @param {number} [xDistance]
  * @param {number} [yDistance]
+ * @param {boolean} [bigNumbers]
  * @param {number} [colorScheme]
  * @param {string} [idStatus]
  * @param {boolean} [fAutoUpdate] (true to add the Viewport to the set of automatically updated Viewports)
  * @return {Viewport}
  */
-function initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, colorScheme, idStatus, fAutoUpdate = true)
+function initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus, fAutoUpdate = true)
 {
-    let viewport = new Viewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, colorScheme, idStatus);
-    if (fAutoUpdate) {
-        addViewport(viewport);
-    }
+    let viewport = new Viewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus);
+    if (fAutoUpdate) addViewport(viewport);
     return viewport;
 }
 

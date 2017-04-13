@@ -15,6 +15,7 @@ Viewports may also have the following properties:
   yCenter (default: undefined)
   xDistance (default: undefined)
   yDistance (default: xDistance)
+  bigNumbers (default: false)
   colorScheme (default: undefined)
   idStatus (default: empty string)
 
@@ -41,7 +42,8 @@ Any property definition in the include tag overrides that property definition in
 {% assign yDistance = include.yDistance | default: view.yDistance | default: xDistance %}
 {% assign colorScheme = include.colorScheme | default: view.colorScheme | default: 'undefined' %}
 {% assign idStatus = include.idStatus | default: view.idStatus | default: '' %}
-{% capture parms %}"{{ include.id }}",{{ gridWidth }},{{ gridHeight }},{{ xCenter }},{{ yCenter }},{{ xDistance }},{{ yDistance }},{{ colorScheme }},"{{ idStatus }}"{% endcapture %}
+{% assign bigNumbers = include.bigNumbers | default: view.bigNumbers | default: 'false' %}
+{% capture parms %}"{{ include.id }}",{{ gridWidth }},{{ gridHeight }},{{ xCenter }},{{ yCenter }},{{ xDistance }},{{ yDistance }},{{ bigNumbers }},{{ colorScheme }},"{{ idStatus }}"{% endcapture %}
 <canvas class="mandelbot-viewport" id="{{ include.id }}" width="{{ viewWidth }}" height="{{ viewHeight }}" style="{{ viewStyle }}"></canvas>
 {% if idStatus != '' %}
 <p class="mandelbot-status" id="{{ idStatus }}">No status</p>
