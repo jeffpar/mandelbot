@@ -56,3 +56,11 @@ BigNumber.prototype.lt = function(value, base){};
  * @return {number}
  */
 BigNumber.prototype.toNumber = function(){};
+
+/**
+ * @this {BigNumber}
+ * @param {number} dp
+ * @param {number} [rm]
+ * @return {BigNumber}
+ */
+BigNumber.prototype.round = function(dp, rm){};
