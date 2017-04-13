@@ -5,7 +5,7 @@ Like [package.json](package.json) says, a Mandelbot is a "Mandelbrot image gener
 goals include:
 
 - Make Mandelbots easy to use and configure (see [Configuration](#configuration))
-- Support multiple Mandelbots per page
+- Support multiple Mandelbots per page (see [Demo](http://mandelbot.net))
 - Build it using simple, easy-to-understand code (see [src/mandelbot.js](src/mandelbot.js))
 - Experiment with new technologies (eg, support for the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
 	
