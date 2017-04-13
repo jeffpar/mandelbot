@@ -229,11 +229,12 @@ class Viewport {
                 fUpdated = true;
             }
             if (nMaxIterationsUpdate <= 0) break;
-            this.xPos = this.xLeft.plus(0);
             this.colPos = 0;
             if (!this.fBigNumbers) {
+                this.xPos = this.xLeft;
                 this.yPos -= this.yInc;
             } else {
+                this.xPos = this.xLeft.plus(0);
                 this.yPos = this.yPos.minus(this.yInc);
             }
             this.rowPos++;
