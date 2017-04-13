@@ -63,13 +63,13 @@ Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll
 Operation
 ---------
 
-Mandelbots are added to a Jekyll Markdown document (like the [home page](INDEX.md)) using the [viewport](_includes/viewport.html)
-include file:
+Mandelbots are added to [Jekyll](https://jekyllrb.com/) Markdown documents on the [Mandelbot website](http://mandelbot.net)
+using the [Viewport](_includes/viewport.html) include file:
 
 	{% include viewport.html id="mandelbot1" viewWidth="200" viewHeight="200" %}
 	
-For documents containing multiple Mandelbots, it may be better to define each viewport's configuration parameters at the
-top of the Markdown document (ie, inside the document's Front Matter):
+For documents containing multiple Mandelbots, it may be more convenient to define each viewport's configuration parameters
+at the top of the Markdown document, inside the document's [Front Matter](https://jekyllrb.com/docs/frontmatter/):
 
 	---
 	...
@@ -80,9 +80,11 @@ top of the Markdown document (ie, inside the document's Front Matter):
 	    ...
 	---
 
-And then each Mandelbot can be added with just an *id* parameter:
+Then each Mandelbot can be added with just an *id* parameter:
 
 	{% include viewport.html id="mandelbot1" %}
+
+Examples of both inline and predefined Mandelbot viewports can be found in the project's [home page](INDEX.md).
 
 Viewports support the following properties:
 
@@ -97,7 +99,7 @@ Viewports support the following properties:
 - *yCenter*: the y coordinate of the center of the initial image (default: 0)
 - *xDistance*: the distance from xCenter to the right and left sides of the initial image (default: 1.5)
 - *yDistance*: the distance from yCenter to the top and bottom of the initial image (default: xDistance)
-- *bigNumbers: true to use BigNumbers for all floating-point calculations (default: false)
+- *bigNumbers*: true to use BigNumbers for all floating-point calculations (default: false)
 - *colorScheme*: one of the Viewport.COLORSCHEME values (default: GRAY)
 - *idStatus*: a unique identifier for a text-based status control; if omitted, no control is generated
 
