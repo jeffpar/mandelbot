@@ -16,7 +16,7 @@ An assortment of old related Pascal, C, and 8088 assembly-language code that I w
 Installation
 ------------
 
-This project has already been installed at [Mandelbot website](http://mandelbot.net/) using
+This project has already been installed at the [Mandelbot website](http://mandelbot.net/) using
 [GitHub Pages](https://pages.github.com/) and the [gh-pages](https://github.com/jeffpar/mandelbot/tree/gh-pages)
 branch of this project.  The website is constructed using [Jekyll](https://jekyllrb.com/) and a collection of
 [Markdown](https://daringfireball.net/projects/markdown/) documents.
