@@ -1,7 +1,7 @@
 {
   "name": "mandelbot",
   "version": "1.0.0",
-  "description": "Interactively generate Mandelbrot images in JavaScript using BigNumber.js",
+  "description": "Mandelbrot image generator written in JavaScript",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

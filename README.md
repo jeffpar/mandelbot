@@ -1,17 +1,20 @@
 Mandelbot
 ---------
 
-Like [package.json](package.json) says, this project will:
+Like [package.json](package.json) says, a Mandelbot is a "Mandelbrot image generator written in JavaScript."  The
+goals include:
 
-	Interactively generate Mandelbrot images in JavaScript using BigNumber.js
+- Make Mandelbots easy to use and configure (see [Configuration](#configuration))
+- Support multiple Mandelbots per page
+- Build it using simple, easy-to-understand code (see [src/mandelbot.js](src/mandelbot.js))
+- Experiment with new technologies (eg, support for the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
 	
 However, this is a work-in-progress, so there isn't a lot to see here yet.  I started the project as a diversion
-and an excuse to learn some new things, including how to use (and possibly modify) the
-[BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library.
+and an excuse to learn some new things, so bear with me.
 
-The JavaScript code that calculates which numbers are in the Mandelbrot set and graphs them is in [src/mandelbot.js](src/mandelbot.js).
-An assortment of old related Pascal, C, and 8088 assembly-language code that I wrote over 30 years ago has also been in archived in
-[src/old](src/old/).
+For history buffs, I've [archived](src/old/) an assortment of old related Pascal, C, and 8088 assembly-language code that
+I wrote over 30 years ago.  And the original [Scientific American](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf) article
+that helped spur a lot of early interest in the Mandelbrot Set (including my own) has been archived here as well.
 
 Installation
 ------------
@@ -63,8 +66,8 @@ Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll
 - Disables Google Analytics
 - Disables minified JavaScript
 
-Operation
----------
+Configuration
+-------------
 
 Mandelbots are added to [Jekyll](https://jekyllrb.com/) documents on the [Mandelbot website](http://mandelbot.net)
 using the [Viewport](_includes/viewport.html) include file:

@@ -6,7 +6,7 @@ viewports:
     viewHeight: 1024
     styleWidth: 100%
     colorScheme: 0
-    bigNumbers: true
+    bigNumbers: false
     idStatus: status5
 ---
 
