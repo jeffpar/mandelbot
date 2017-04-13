@@ -190,9 +190,11 @@ class Viewport {
             this.yPos = this.yTop;
         } else {
             this.xLeft = this.xCenter.minus(this.xDistance);
-            this.xInc = this.xDistance.times(2).dividedBy(this.gridWidth);
+            this.xInc = this.xDistance.times(2).dividedBy(this.gridWidth).round(20);
             this.yTop = this.yCenter.plus(this.yDistance);
-            this.yInc = this.yDistance.times(2).dividedBy(this.gridHeight);
+            this.yInc = this.yDistance.times(2).dividedBy(this.gridHeight).round(20);
+            this.xPos = this.xLeft.plus(0);     // simple way of generating a new BigNumber with the same value
+            this.yPos = this.yTop.plus(0);
         }
     }
 
@@ -227,7 +229,7 @@ class Viewport {
                 fUpdated = true;
             }
             if (nMaxIterationsUpdate <= 0) break;
-            this.xPos = this.xLeft;
+            this.xPos = this.xLeft.plus(0);
             this.colPos = 0;
             if (!this.fBigNumbers) {
                 this.yPos -= this.yInc;
@@ -238,7 +240,10 @@ class Viewport {
             rowsDirty++;
             colDirty = 0; colsDirty = this.gridWidth;
         }
-        if (fUpdated) this.drawGrid(colDirty, rowDirty, colsDirty, rowsDirty || 1);
+        if (fUpdated) {
+            if (this.colPos > 0) rowsDirty++;
+            this.drawGrid(colDirty, rowDirty, colsDirty, rowsDirty);
+        }
         return fUpdated;
     }
 
@@ -334,7 +339,7 @@ class Viewport {
     }
 
     /**
-     * calibrate(nIterationsStart, nCalibrations)
+     * calibrate(nIterationsStart, nCalibrations, fBigNumbers)
      *
      * Estimate how many isMandelbrot() iterations can be performed in TIMESLICE milliseconds.
      * The process starts by performing the half the default (maximum) number of iterations for
@@ -343,9 +348,10 @@ class Viewport {
      *
      * @param {number} [nIterationsStart]
      * @param {number} [nCalibrations]
+     * @param {boolean} [fBigNumbers]
      * @return {number} (of operations to perform before yielding)
      */
-    static calibrate(nIterationsStart = 0, nCalibrations = 1)
+    static calibrate(nIterationsStart = 0, nCalibrations = 1, fBigNumbers = false)
     {
         let nIterationsAvg = 0, nLoops = 0;
         do {
@@ -354,7 +360,9 @@ class Viewport {
             let nIterationsInc = (nMaxIterationsPerNumber / 2)|0;
             do {
                 nIterationsInc *= 2;
-                let n = Viewport.isMandelbrot(-0.5, 0, nIterationsStart + nIterationsInc);
+                let x = fBigNumbers? new BigNumber(-0.5) : -0.5;
+                let y = fBigNumbers? new BigNumber(0) : 0;
+                let n = Viewport.isMandelbrot(x, y, nIterationsStart + nIterationsInc);
                 msTotal = Date.now() - msStart;
                 if (msTotal >= msTimeslice) break;
                 nIterationsTotal += (nIterationsStart + nIterationsInc) - n;
@@ -408,19 +416,20 @@ class Viewport {
                 } while (--l > 0);
             }
         } else {
-            let a = new BigNumber(0), b = new BigNumber(0), ta = new BigNumber(0), tb = new BigNumber(0), m;
+            let a = new BigNumber(0), b = new BigNumber(0), ta = new BigNumber(0), tb = new BigNumber(0);
             do {
-                b = a.times(b).times(2).plus(y);
+                b = a.times(b).times(2).plus(y).round(20);
                 a = ta.minus(tb).plus(x);
-                ta = a.times(a); tb = b.times(b); m = ta.plus(tb);
-            } while (--n > 0 && m.lt(4));
+                ta = a.times(a).round(20);
+                tb = b.times(b).round(20);
+            } while (--n > 0 && ta.plus(tb).lt(4));
             if (n && aResults) {
                 let l = 4;  // iterate a few (4) more times to provide more detail; see http://linas.org/art-gallery/escape/escape.html
                 do {
-                    b = a.times(b).times(2).plus(y);
+                    b = a.times(b).times(2).plus(y).round(20);
                     a = ta.minus(tb).plus(x);
-                    ta = a.times(a);
-                    tb = b.times(b);
+                    ta = a.times(a).round(20);
+                    tb = b.times(b).round(20);
                 } while (--l > 0);
                 aa = ta.toNumber();
                 bb = tb.toNumber();
