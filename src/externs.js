@@ -45,6 +45,14 @@ BigNumber.prototype.dividedBy = function(value, base){};
 
 /**
  * @this {BigNumber}
+ * @param {number} dp
+ * @param {number} [rm]
+ * @return {BigNumber}
+ */
+BigNumber.prototype.round = function(dp, rm){};
+
+/**
+ * @this {BigNumber}
  * @param {number|string|BigNumber} value
  * @param {number} [base]
  * @return {boolean}
@@ -56,11 +64,3 @@ BigNumber.prototype.lt = function(value, base){};
  * @return {number}
  */
 BigNumber.prototype.toNumber = function(){};
-
-/**
- * @this {BigNumber}
- * @param {number} dp
- * @param {number} [rm]
- * @return {BigNumber}
- */
-BigNumber.prototype.round = function(dp, rm){};
