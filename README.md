@@ -30,6 +30,7 @@ corresponding Terminal commands.
 
 	git clone https://github.com/jeffpar/mandelbot.git
 	cd mandelbot
+	git submodule update --init --recursive
 
 ##### Step 2: Install [Homebrew](https://brew.sh/) (optional if you already have Ruby).
 
@@ -64,6 +65,21 @@ Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll
 
 - Disables Google Analytics
 - Disables minified JavaScript
+
+#### Notes for other operating systems (eg, Ubuntu)
+
+On a clean Ubuntu-based system (elementary OS), I needed to:
+
+	sudo apt install git
+	sudo apt install ruby
+	sudo apt-get install ruby2.3-dev
+	sudo apt-get install zlib1g-dev
+	sudo gem install bundler
+	echo gem "'therubyracer'" >> Gemfile
+	bundle install
+	bundle exec jekyll serve --config _config.yml,_developer.yml
+
+Without *therubyracer* added to the Gemfile, Jekyll would fail with the error "Could not find a JavaScript runtime."
 
 Configuration
 -------------
