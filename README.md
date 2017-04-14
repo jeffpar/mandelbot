@@ -1,8 +1,7 @@
 Mandelbot
 ---------
 
-Like [package.json](package.json) says, a Mandelbot is a "Mandelbrot image generator written in JavaScript."  The
-goals include:
+A Mandelbot is a Mandelbrot image generator written in JavaScript.  The goals include:
 
 - Make Mandelbots easy to use and configure (see [Configuration](#configuration))
 - Support multiple Mandelbots per page (see [Demo](http://mandelbot.net))
