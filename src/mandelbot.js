@@ -17,12 +17,12 @@
 // import * as BigNumber from "./bignumber/bignumber";
 
 let idTimeout = 0;
-let msTimeslice = (1000 / 60)|0;
-let nMaxIterationsPerNumber = 100;      // default maximum iterations per number
-let nMaxIterationsPerTimeslice;         // updated by a one-time call to calibrate(), using normal numbers
-let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibrate(), using BigNumbers instead
 let activeViewports = [];
 let iNextViewport = 0;
+let msTimeslice = (1000 / 60)|0;
+let nMaxIterationsPerNumber = 100;      // default maximum iterations per number
+let nMaxIterationsPerTimeslice;         // updated by a one-time call to calibrate() using normal numbers
+let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibrate() using BigNumbers instead
 
 /**
  * @class Viewport
@@ -411,12 +411,13 @@ class Viewport {
         nMax = nMax || nMaxIterationsPerNumber;
         let n = nMax;
         /*
-         * We can restate the Mandelbrot function described above as:
+         * Let's restate the Mandelbrot function slightly, using z{n} to indicate the nth iteration of z:
          *
          *      z{n+1} = z{n}^2 + c
          *
-         * where z is a complex number of the form (a + bi), where a and b are real and imaginary coefficients;
-         * ditto for c.  z{0} is (0 + 0i) and coefficients for c are given to us: (x + yi).
+         * z is a complex number of the form (a + bi), where a and b are real and imaginary coefficients; ditto for c.
+         *
+         * z{0}, the initial z, is (0 + 0i), and the coefficients for c are passed to us: (x + yi).
          *
          * The n+1 iteration requires that we calculate the square of the nth iteration, which means squaring (a + bi):
          *
@@ -426,7 +427,7 @@ class Viewport {
          *
          *      (a * a) + (2 * a * b * i) + (b * i * b * i)
          *
-         * which can be simplified to this (since i * i = -1):
+         * which can be simplified (since i * i = -1):
          *
          *      (a * a) + (2 * a * b * i) - (b * b)
          *
@@ -442,7 +443,8 @@ class Viewport {
          *
          *      m = Math.sqrt(a^2 + b^2)
          *
-         * but to avoid a sqrt() operation, we can simply calculate m = (a * a) + (b * b) and compare that to 4 instead.
+         * To avoid a sqrt() operation, we can simply calculate m = (a * a) + (b * b) and compare that to 4 instead;
+         * happily, we've already calculated (a * a) and (b * b), so calculating m is just an additional addition.
          *
          * TODO: I need to find something conclusive regarding whether the "escape" criteria is >= 2 or > 2.  The code
          * assumes the former, in part because this is what the original Scientific American article from August 1985 said:
@@ -493,8 +495,8 @@ class Viewport {
          *
          *      [0]: the number of iterations specified (ie, the maximum)
          *      [1]: the number of iterations remaining (if 0, then presumed to be in the Mandelbrot set)
-         *      [2]: the last square calculated using the real portion (x)
-         *      [3]: the last square calculated using the imaginary portion (y)
+         *      [2]: the last square calculated for the real portion of the last z
+         *      [3]: the last square calculated for the imaginary portion of the last z
          *
          * Callers generally only care about the second value (which is the same as the function's return value),
          * but all four values provide additional information about "how close" the number is to the Mandelbrot set.
