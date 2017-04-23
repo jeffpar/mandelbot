@@ -5,12 +5,12 @@ Every Mandelbot must have a unique id:
 
 Mandelbots may also have the following properties:
 
-  viewWidth (default: 200)
-  viewHeight (default: 200)
-  gridWidth (default: viewWidth)
-  gridHeight (default: viewHeight)
-  styleWidth (default: auto)
-  styleHeight (default: auto)
+  widthView (default: 200)
+  heightView (default: 200)
+  widthGrid (default: widthView)
+  heightGrid (default: heightView)
+  widthStyle (default: auto)
+  heightStyle (default: auto)
   xCenter (default: undefined)
   yCenter (default: undefined)
   xDistance (default: undefined)
@@ -30,13 +30,13 @@ Any property definition in the include tag overrides that property definition in
   {% endif %}
 {% endfor %}
 {% assign id = include.id | default: 'default' %}
-{% assign viewWidth = include.viewWidth | default: mandelbot.viewWidth | default: '200' %}
-{% assign viewHeight = include.viewHeight | default: mandelbot.viewHeight | default: '200' %}
-{% assign gridWidth = include.gridWidth | default: mandelbot.gridWidth | default: viewWidth %}
-{% assign gridHeight = include.gridHeight | default: mandelbot.gridHeight | default: viewHeight %}
-{% assign styleWidth = include.styleWidth | default: mandelbot.styleWidth | default: 'auto' %}
-{% assign styleHeight = include.styleHeight | default: mandelbot.styleHeight | default: 'auto' %}
-{% capture viewStyle %}width: {{styleWidth}}; height: {{styleHeight}}{% endcapture %}
+{% assign widthView = include.widthView | default: mandelbot.widthView | default: '200' %}
+{% assign heightView = include.heightView | default: mandelbot.heightView | default: '200' %}
+{% assign widthGrid = include.widthGrid | default: mandelbot.widthGrid | default: widthView %}
+{% assign heightGrid = include.heightGrid | default: mandelbot.heightGrid | default: heightView %}
+{% assign widthStyle = include.widthStyle | default: mandelbot.widthStyle | default: 'auto' %}
+{% assign heightStyle = include.heightStyle | default: mandelbot.heightStyle | default: 'auto' %}
+{% capture viewStyle %}width: {{widthStyle}}; height: {{heightStyle}}{% endcapture %}
 {% assign xCenter = include.xCenter | default: mandelbot.xCenter | default: 'undefined' %}
 {% assign yCenter = include.yCenter | default: mandelbot.yCenter | default: 'undefined' %}
 {% assign xDistance = include.xDistance | default: mandelbot.xDistance | default: 'undefined' %}
@@ -44,8 +44,8 @@ Any property definition in the include tag overrides that property definition in
 {% assign colorScheme = include.colorScheme | default: mandelbot.colorScheme | default: 'undefined' %}
 {% assign idStatus = include.idStatus | default: mandelbot.idStatus | default: '' %}
 {% assign bigNumbers = include.bigNumbers | default: mandelbot.bigNumbers | default: 'false' %}
-{% capture parms %}"{{ id }}",{{ gridWidth }},{{ gridHeight }},{{ xCenter }},{{ yCenter }},{{ xDistance }},{{ yDistance }},{{ bigNumbers }},{{ colorScheme }},"{{ idStatus }}"{% endcapture %}
-<canvas class="mandelbot-view" id="{{ id }}" width="{{ viewWidth }}" height="{{ viewHeight }}" style="{{ viewStyle }}"></canvas>
+{% capture parms %}"{{ id }}",{{ widthGrid }},{{ heightGrid }},{{ xCenter }},{{ yCenter }},{{ xDistance }},{{ yDistance }},{{ bigNumbers }},{{ colorScheme }},"{{ idStatus }}"{% endcapture %}
+<canvas class="mandelbot-view" id="{{ id }}" width="{{ widthView }}" height="{{ heightView }}" style="{{ viewStyle }}"></canvas>
 {% if idStatus != '' %}
 <p class="mandelbot-status" id="{{ idStatus }}">No status</p>
 {% endif %}

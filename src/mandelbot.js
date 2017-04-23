@@ -24,15 +24,13 @@ let nMaxIterationsPerNumber = 100;      // default maximum iterations per number
 let nMaxIterationsPerTimeslice;         // updated by a one-time call to calibrate() using normal numbers
 let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibrate() using BigNumbers instead
 
-let DEBUG = false;
-
 /**
  * @class Mandelbot
  * @unrestricted
- * @property {number} viewWidth
- * @property {number} viewHeight
- * @property {number} gridWidth
- * @property {number} gridHeight
+ * @property {number} widthView
+ * @property {number} heightView
+ * @property {number} widthGrid
+ * @property {number} heightGrid
  * @property {number|BigNumber} xCenter
  * @property {number|BigNumber} yCenter
  * @property {number|BigNumber} xDistance
@@ -47,18 +45,18 @@ let DEBUG = false;
  * @property {ImageData} imageGrid
  * @property {HTMLCanvasElement} canvasGrid
  * @property {CanvasRenderingContext2D} contextGrid
- * @property {number} colPos
- * @property {number} rowPos
+ * @property {number} colUpdate
+ * @property {number} rowUpdate
  * @property {number|BigNumber} xLeft
  * @property {number|BigNumber} xInc
  * @property {number|BigNumber} yTop
  * @property {number|BigNumber} xInc
- * @property {number|BigNumber} xPos
- * @property {number|BigNumber} yPos
+ * @property {number|BigNumber} xUpdate
+ * @property {number|BigNumber} yUpdate
  */
 class Mandelbot {
     /**
-     * Mandelbot(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus)
+     * Mandelbot(idCanvas, widthGrid, heightGrid, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus)
      *
      * The constructor records information about the View canvas (eg, its dimensions, 2D context, etc), and then
      * creates the internal Grid canvas using the supplied dimensions, which usually match the View canvas dimensions
@@ -71,8 +69,8 @@ class Mandelbot {
      *
      * @this {Mandelbot}
      * @param {string} idCanvas (the id of an existing view canvas; required)
-     * @param {number} [gridWidth] (grid canvas width; default is view canvas width)
-     * @param {number} [gridHeight] (grid canvas height; default is view canvas height)
+     * @param {number} [widthGrid] (grid canvas width; default is view canvas width)
+     * @param {number} [heightGrid] (grid canvas height; default is view canvas height)
      * @param {number|string} [xCenter] (the x coordinate of the center of the initial image; default is -0.5)
      * @param {number|string} [yCenter] (the y coordinate of the center of the initial image; default is 0)
      * @param {number|string} [xDistance] (the distance from xCenter to the right and left sides of the initial image; default is 1.5)
@@ -81,7 +79,7 @@ class Mandelbot {
      * @param {number} [colorScheme] (one of the Mandelbot.COLORSCHEME values; default is GRAY)
      * @param {string} [idStatus] (the id of an existing status control, if any)
      */
-    constructor(idCanvas, gridWidth = 0, gridHeight = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, bigNumbers = false, colorScheme, idStatus)
+    constructor(idCanvas, widthGrid = 0, heightGrid = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, bigNumbers = false, colorScheme, idStatus)
     {
         if (!bigNumbers) {
             /*
@@ -111,7 +109,7 @@ class Mandelbot {
              * the createImageData() call in initGrid() to barf.  So rather than trying to imagine every
              * possible failure here, let's just catch and display any errors.
              */
-            if (this.initView(idCanvas) && this.initGrid(gridWidth || this.viewWidth, gridHeight || this.viewHeight)) {
+            if (this.initView(idCanvas) && this.initGrid(widthGrid || this.widthView, heightGrid || this.heightView)) {
                 this.prepGrid();
             }
         } catch(err) {
@@ -134,8 +132,8 @@ class Mandelbot {
     {
         this.canvasView = /** @type {HTMLCanvasElement} */ (document.getElementById(idCanvas));
         if (this.canvasView) {
-            this.viewWidth = this.canvasView.width;
-            this.viewHeight = this.canvasView.height;
+            this.widthView = this.canvasView.width;
+            this.heightView = this.canvasView.height;
             this.contextView = this.canvasView.getContext("2d");
             if (this.contextView) {
                 /*
@@ -157,21 +155,21 @@ class Mandelbot {
     }
 
     /**
-     * initGrid(gridWidth, gridHeight)
+     * initGrid(widthGrid, heightGrid)
      *
      * @this {Mandelbot}
-     * @param {number} gridWidth
-     * @param {number} gridHeight
+     * @param {number} widthGrid
+     * @param {number} heightGrid
      * @return {boolean}
      */
-    initGrid(gridWidth, gridHeight)
+    initGrid(widthGrid, heightGrid)
     {
-        this.imageGrid = this.contextView.createImageData(gridWidth, gridHeight);
+        this.imageGrid = this.contextView.createImageData(widthGrid, heightGrid);
         if (this.imageGrid) {
             this.canvasGrid = /** @type {HTMLCanvasElement} */ (document.createElement("canvas"));
             if (this.canvasGrid) {
-                this.canvasGrid.width = this.gridWidth = gridWidth;
-                this.canvasGrid.height = this.gridHeight = gridHeight;
+                this.canvasGrid.width = this.widthGrid = widthGrid;
+                this.canvasGrid.height = this.heightGrid = heightGrid;
                 if (this.contextGrid = this.canvasGrid.getContext("2d")) {
                     return true;
                 }
@@ -193,6 +191,13 @@ class Mandelbot {
 
         if (!this.controlTouch) {
             this.controlTouch = control;
+            this.colSelect = this.rowSelect = this.widthSelect = this.heightSelect = -1;
+            /*
+             * As long as fTouchDefault is false, we call preventDefault() on every touch event, to prevent
+             * the page from moving/scrolling while the canvas is processing touch events.  However, there must
+             * also be exceptions to permit the soft keyboard to activate; see processTouchEvent() for details.
+             */
+            this.fTouchDefault = false;
 
             control.addEventListener(
                 'touchstart',
@@ -211,48 +216,28 @@ class Mandelbot {
             );
 
             /*
-             * Using desktop mouse events to simulate touch events should only be enabled as needed.
+             * Desktop mouse events are allowed to simulate touch events.
              */
-            if (DEBUG) {
-                control.addEventListener(
-                    'mousedown',
-                    function onMouseDown(event) { mandelbot.processTouchEvent(event, true); },
-                    false               // we'll specify false for the 'useCapture' parameter for now...
-                );
-                control.addEventListener(
-                    'mousemove',
-                    function onMouseMove(event) { if (mandelbot.xTouch >= 0) mandelbot.processTouchEvent(event); },
-                    true
-                );
-                control.addEventListener(
-                    'mouseup',
-                    function onMouseUp(event) { mandelbot.processTouchEvent(event, false); },
-                    false               // we'll specify false for the 'useCapture' parameter for now...
-                );
-            }
-
-            this.xTouch = this.yTouch = -1;
-
-            /*
-             * As long as fTouchDefault is false, we call preventDefault() on every touch event, to prevent
-             * the page from moving/scrolling while the canvas is processing touch events.  However, there must
-             * also be exceptions to permit the soft keyboard to activate; see processTouchEvent() for details.
-             */
-            this.fTouchDefault = false;
+            control.addEventListener(
+                'mousedown',
+                function onMouseDown(event) { mandelbot.processTouchEvent(event, true); },
+                false               // we'll specify false for the 'useCapture' parameter for now...
+            );
+            control.addEventListener(
+                'mousemove',
+                function onMouseMove(event) { if (mandelbot.colSelect >= 0) mandelbot.processTouchEvent(event); },
+                true
+            );
+            control.addEventListener(
+                'mouseup',
+                function onMouseUp(event) { mandelbot.processTouchEvent(event, false); },
+                false               // we'll specify false for the 'useCapture' parameter for now...
+            );
         }
     }
 
     /**
      * processTouchEvent(event, fStart)
-     *
-     * If nTouchConfig is non-zero, touch event handlers are installed, which pass their events to this function.
-     *
-     * What we do with those events here depends on the value of nTouchConfig.  Originally, the only supported
-     * configuration was the experimental conversion of touch events into arrow keys, based on an invisible grid
-     * that divided the screen into thirds; that configuration is now identified as Video.TOUCH.KEYGRID.
-     *
-     * The new preferred configuration is Video.TOUCH.MOUSE, which does little more than allow you to "push" the
-     * simulated mouse around.  If Video.TOUCH.MOUSE is enabled, it's already been confirmed the machine has a mouse.
      *
      * @this {Mandelbot}
      * @param {Event} event object from a 'touch' event
@@ -260,9 +245,21 @@ class Mandelbot {
      */
     processTouchEvent(event, fStart)
     {
-        let xTouch, yTouch;
+        let colView, rowView;
 
-        // if (!event) event = window.event;
+        /**
+         * @name Event
+         * @property {Array} targetTouches
+         */
+        event = event || window.event;
+
+        if (!event.targetTouches || !event.targetTouches.length) {
+            colView = event.pageX;
+            rowView = event.pageY;
+        } else {
+            colView = event.targetTouches[0].pageX;
+            rowView = event.targetTouches[0].pageY;
+        }
 
         /*
          * Touch coordinates (that is, the pageX and pageY properties) are relative to the page, so to make
@@ -272,18 +269,14 @@ class Mandelbot {
          *
          * makes it sound simple, but it turns out we have to walk the canvas' entire "parentage" of DOM elements
          * to get the exact offsets.
-         *
-         * TODO: Determine whether the getBoundingClientRect() code used in panel.js for mouse events can also
-         * be used here to simplify this annoyingly complicated code for touch events.
          */
-        let xTouchOffset = 0;
-        let yTouchOffset = 0;
+        let colOffset = 0;
+        let rowOffset = 0;
         let control = this.controlTouch;
-
         do {
             if (!isNaN(control.offsetLeft)) {
-                xTouchOffset += control.offsetLeft;
-                yTouchOffset += control.offsetTop;
+                colOffset += control.offsetLeft;
+                rowOffset += control.offsetTop;
             }
         } while ((control = control.offsetParent));
 
@@ -291,64 +284,90 @@ class Mandelbot {
          * Due to the responsive nature of our pages, the displayed size of the canvas may be smaller than the
          * allocated size, and the coordinates we receive from touch events are based on the currently displayed size.
          */
-        let xScale =  this.viewWidth / this.controlTouch.offsetWidth;
-        let yScale = this.viewHeight / this.controlTouch.offsetHeight;
+        colView = (colView - colOffset) * (this.widthView / this.controlTouch.offsetWidth);
+        rowView = (rowView - rowOffset) * (this.heightView / this.controlTouch.offsetHeight);
 
-        /**
-         * @name Event
-         * @property {Array} targetTouches
+        /*
+         * Finally, we need to convert colView,rowView to colGrid,rowGrid.
          */
-        if (!event.targetTouches || !event.targetTouches.length) {
-            xTouch = event.pageX;
-            yTouch = event.pageY;
-        } else {
-            xTouch = event.targetTouches[0].pageX;
-            yTouch = event.targetTouches[0].pageY;
-        }
-
-        xTouch = Math.round((xTouch - xTouchOffset) * xScale);
-        yTouch = Math.round((yTouch - yTouchOffset) * yScale);
+        let colGrid = Math.round((this.widthGrid * colView) / this.widthView);
+        let rowGrid = Math.round((this.heightGrid * rowView) / this.heightView);
 
         if (!this.fTouchDefault) event.preventDefault();
 
-        this.xTouch = xTouch;
-        this.yTouch = yTouch;
+        this.removeSelection();
 
-        if (DEBUG) {
-            console.log("processTouchEvent(" + (fStart? "touchStart" : (fStart === false? "touchEnd" : "touchMove")) + ",x=" + this.xTouch + ",y=" + this.yTouch);
+        if (fStart) {
+            this.colSelect = colGrid;
+            this.rowSelect = rowGrid;
+            this.widthSelect = this.heightSelect = 1;
+        }
+        else if (fStart === false) {
+            this.colSelect = this.rowSelect = this.widthSelect = this.heightSelect = -1;
+        } else {
+            this.widthSelect = colGrid - this.colSelect;
+            this.heightSelect = rowGrid - this.rowSelect;
         }
 
-        if (fStart === false) {
-            this.xTouch = this.yTouch = -1;
+        this.addSelection();
+    }
+
+    /**
+     * addSelection()
+     *
+     * @this {Mandelbot}
+     */
+    addSelection()
+    {
+        if (this.colSelect >= 0) {
+            this.contextGrid.lineWidth = 1;
+            this.contextGrid.strokeStyle = "#00FF00";
+            this.contextGrid.strokeRect(this.colSelect, this.rowSelect, this.widthSelect, this.heightSelect);
+            this.contextView.drawImage(this.canvasGrid, 0, 0, this.widthGrid, this.heightGrid, 0, 0, this.widthView, this.heightView);
+        }
+    }
+
+    /**
+     * removeSelection()
+     *
+     * @this {Mandelbot}
+     */
+    removeSelection()
+    {
+        if (this.colSelect >= 0) {
+            this.contextGrid.putImageData(this.imageGrid, 0, 0);
+            // this.drawGrid(this.colSelect, this.rowSelect, this.widthSelect, this.heightSelect);
         }
     }
 
     /**
      * prepGrid()
      *
-     * Prepares colPos and rowPos (the next position on the grid to be updated), along with xPos and yPos
-     * (the x and y coordinates associated with that grid position) and xInc and yInc, the intermediate
-     * incremental x and y values that are constant for the duration of the next overall updateGrid() operation.
+     * Resets colUpdate and rowUpdate (the next position on the grid to be updated) and calculates xUpdate and
+     * yUpdate (the x and y coordinates corresponding to that grid position).
+     *
+     * We also calculate several values that are constant for the next updateGrid() operation: xLeft and yTop are
+     * the left-most and top-most x,y values, and xInc and yInc are the appropriate x,y increments.
      *
      * @this {Mandelbot}
      */
     prepGrid()
     {
-        this.colPos = this.rowPos = 0;
+        this.colUpdate = this.rowUpdate = 0;
         if (!this.bigNumbers) {
             this.xLeft = this.xCenter - this.xDistance;
-            this.xInc = (this.xDistance * 2) / this.gridWidth;
+            this.xInc = (this.xDistance * 2) / this.widthGrid;
             this.yTop = this.yCenter + this.yDistance;
-            this.yInc = (this.yDistance * 2) / this.gridHeight;
-            this.xPos = this.xLeft;
-            this.yPos = this.yTop;
+            this.yInc = (this.yDistance * 2) / this.heightGrid;
+            this.xUpdate = this.xLeft;
+            this.yUpdate = this.yTop;
         } else {
             this.xLeft = this.xCenter.minus(this.xDistance);
-            this.xInc = this.xDistance.times(2).dividedBy(this.gridWidth).round(20);
+            this.xInc = this.xDistance.times(2).dividedBy(this.widthGrid).round(20);
             this.yTop = this.yCenter.plus(this.yDistance);
-            this.yInc = this.yDistance.times(2).dividedBy(this.gridHeight).round(20);
-            this.xPos = this.xLeft.plus(0);     // simple way of generating a new BigNumber with the same value
-            this.yPos = this.yTop.plus(0);
+            this.yInc = this.yDistance.times(2).dividedBy(this.heightGrid).round(20);
+            this.xUpdate = this.xLeft.plus(0);    // simple way of generating a new BigNumber with the same value
+            this.yUpdate = this.yTop.plus(0);
         }
     }
 
@@ -364,58 +383,58 @@ class Mandelbot {
     updateGrid()
     {
         let fUpdated = false;
-        let colDirty = this.colPos;
-        let rowDirty = this.rowPos;
-        let colsDirty = 0, rowsDirty = 0;
+        let colDirty = this.colUpdate;
+        let rowDirty = this.rowUpdate;
+        let widthDirty = 0, heightDirty = 0;
         let nMaxIterationsTotal = Math.floor((this.bigNumbers? nMaxBigIterationsPerTimeslice : nMaxIterationsPerTimeslice) / activeMandelbots.length);
-        while (this.rowPos < this.gridHeight) {
-            while (nMaxIterationsTotal > 0 && this.colPos < this.gridWidth) {
+        while (this.rowUpdate < this.heightGrid) {
+            while (nMaxIterationsTotal > 0 && this.colUpdate < this.widthGrid) {
                 let m = this.nMaxIterations;
-                let n = Mandelbot.isMandelbrot(this.xPos, this.yPos, m, this.aResults);
-                this.setGridPixel(this.rowPos, this.colPos, Mandelbot.getColor(this.colorScheme, this.aResults));
+                let n = Mandelbot.isMandelbrot(this.xUpdate, this.yUpdate, m, this.aResults);
+                this.setGridPixel(this.rowUpdate, this.colUpdate, Mandelbot.getColor(this.colorScheme, this.aResults));
                 if (!this.bigNumbers) {
-                    this.xPos += this.xInc;
+                    this.xUpdate += this.xInc;
                 } else {
-                    this.xPos = this.xPos.plus(this.xInc);
+                    this.xUpdate = this.xUpdate.plus(this.xInc);
                 }
-                this.colPos++;
-                if (!rowsDirty) colsDirty++;
+                this.colUpdate++;
+                if (!heightDirty) widthDirty++;
                 nMaxIterationsTotal -= (m - n);
                 fUpdated = true;
             }
             if (nMaxIterationsTotal <= 0) break;
-            this.colPos = 0;
+            this.colUpdate = 0;
             if (!this.bigNumbers) {
-                this.xPos = this.xLeft;
-                this.yPos -= this.yInc;
+                this.xUpdate = this.xLeft;
+                this.yUpdate -= this.yInc;
             } else {
-                this.xPos = this.xLeft.plus(0);
-                this.yPos = this.yPos.minus(this.yInc);
+                this.xUpdate = this.xLeft.plus(0);
+                this.yUpdate = this.yUpdate.minus(this.yInc);
             }
-            this.rowPos++;
-            rowsDirty++;
-            colDirty = 0; colsDirty = this.gridWidth;
+            this.rowUpdate++;
+            heightDirty++;
+            colDirty = 0; widthDirty = this.widthGrid;
         }
         if (fUpdated) {
-            if (this.colPos > 0) rowsDirty++;
-            this.drawGrid(colDirty, rowDirty, colsDirty, rowsDirty);
+            if (this.colUpdate > 0) heightDirty++;
+            this.drawGrid(colDirty, rowDirty, widthDirty, heightDirty);
         }
         return fUpdated;
     }
 
     /**
-     * drawGrid(colDirty, rowDirty, colsDirty, rowsDirty)
+     * drawGrid(colDirty, rowDirty, widthDirty, heightDirty)
      *
      * @this {Mandelbot}
      * @param {number} [colDirty]
      * @param {number} [rowDirty]
-     * @param {number} [colsDirty]
-     * @param {number} [rowsDirty]
+     * @param {number} [widthDirty]
+     * @param {number} [heightDirty]
      */
-    drawGrid(colDirty = 0, rowDirty = 0, colsDirty = this.gridWidth, rowsDirty = this.gridHeight)
+    drawGrid(colDirty = 0, rowDirty = 0, widthDirty = this.widthGrid, heightDirty = this.heightGrid)
     {
-        this.contextGrid.putImageData(this.imageGrid, 0, 0, colDirty, rowDirty, colsDirty, rowsDirty);
-        this.contextView.drawImage(this.canvasGrid, 0, 0, this.gridWidth, this.gridHeight, 0, 0, this.viewWidth, this.viewHeight);
+        this.contextGrid.putImageData(this.imageGrid, 0, 0, colDirty, rowDirty, widthDirty, heightDirty);
+        this.contextView.drawImage(this.canvasGrid, 0, 0, this.widthGrid, this.heightGrid, 0, 0, this.widthView, this.heightView);
     }
 
     /**
@@ -428,7 +447,7 @@ class Mandelbot {
      */
     setGridPixel(row, col, nRGB)
     {
-        let i = (row * this.gridWidth + col) * 4;
+        let i = (row * this.widthGrid + col) * 4;
         this.imageGrid.data[i] = nRGB & 0xff;
         this.imageGrid.data[i+1] = (nRGB >> 8) & 0xff;
         this.imageGrid.data[i+2] = (nRGB >> 16) & 0xff;
@@ -489,7 +508,7 @@ class Mandelbot {
      * @param {number|BigNumber} x
      * @param {number|BigNumber} y
      * @param {number} [nMax] (iterations)
-     * @param {Array.<number>} [aResults] (optional buffer to return additional data)
+     * @param {Array.<number>} [aResults] (optional array to return additional data)
      * @return {number} (of iterations remaining, 0 if presumed to be in the Mandelbrot set)
      */
     static isMandelbrot(x, y, nMax, aResults)
@@ -647,13 +666,19 @@ class Mandelbot {
      * Copyright 2012 by Christian Stigen Larsen.
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
-     * @param {number} xDistance
-     * @param {number} yDistance
+     * @param {number|BigNumber} xDistance
+     * @param {number|BigNumber} yDistance
      * @return {number}
      */
     static getMaxIterations(xDistance, yDistance)
     {
-        return Math.floor(223.0 / Math.sqrt(0.001 + 4.0 * Math.min(xDistance, yDistance)));
+        let nMin;
+        if (typeof xDistance == "number") {
+            nMin = Math.min(xDistance, yDistance);
+        } else {
+            nMin = BigNumber.min(xDistance, yDistance);
+        }
+        return Math.floor(223.0 / Math.sqrt(0.001 + 4.0 * nMin));
     }
 
     /**
@@ -731,13 +756,13 @@ nMaxIterationsPerTimeslice = Mandelbot.calibrate(0, 8);
 nMaxBigIterationsPerTimeslice = Mandelbot.calibrate(0, 8, true);
 
 /**
- * initMandelbot(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus, fAutoUpdate)
+ * initMandelbot(idCanvas, widthGrid, heightGrid, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus, fAutoUpdate)
  *
  * Global function for creating new Mandelbots.
  *
  * @param {string} idCanvas
- * @param {number} [gridWidth]
- * @param {number} [gridHeight]
+ * @param {number} [widthGrid]
+ * @param {number} [heightGrid]
  * @param {number|string|undefined} [xCenter]
  * @param {number|string|undefined} [yCenter]
  * @param {number|string|undefined} [xDistance]
@@ -748,9 +773,9 @@ nMaxBigIterationsPerTimeslice = Mandelbot.calibrate(0, 8, true);
  * @param {boolean} [fAutoUpdate] (true to add the Mandelbot to the set of automatically updated Mandelbots)
  * @return {Mandelbot}
  */
-function initMandelbot(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus, fAutoUpdate = true)
+function initMandelbot(idCanvas, widthGrid, heightGrid, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus, fAutoUpdate = true)
 {
-    let mandelbot = new Mandelbot(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus);
+    let mandelbot = new Mandelbot(idCanvas, widthGrid, heightGrid, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus);
     if (fAutoUpdate) addMandelbot(mandelbot);
     return mandelbot;
 }

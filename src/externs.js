@@ -6,6 +6,12 @@
 function BigNumber(value, base){}
 
 /**
+ * @param {...number|string|BigNumber} values
+ * @return {BigNumber}
+ */
+BigNumber.min = function(values){};
+
+/**
  * @this {BigNumber}
  * @return {BigNumber}
  */

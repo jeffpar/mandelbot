@@ -2,9 +2,9 @@
 permalink: /
 mandelbots:
   - id: mandelbot5
-    viewWidth: 1024
-    viewHeight: 1024
-    styleWidth: 100%
+    widthView: 1024
+    heightView: 1024
+    widthStyle: 100%
     colorScheme: 0
     bigNumbers: false
     idStatus: status5
@@ -13,4 +13,4 @@ mandelbots:
 Welcome to Mandelbot
 --------------------
 
-{% include mandelbot.html id="mandelbot1" viewWidth="1024" viewHeight="1024" styleWidth="100%" colorScheme="4" idStatus="status1" %}
+{% include mandelbot.html id="mandelbot1" widthView="1024" heightView="1024" widthStyle="100%" colorScheme="4" idStatus="status1" %}
