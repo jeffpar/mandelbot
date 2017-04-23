@@ -1,0 +1,52 @@
+{% comment %}
+Every Mandelbot must have a unique id:
+
+  id (example: mandelbot1)
+
+Mandelbots may also have the following properties:
+
+  viewWidth (default: 200)
+  viewHeight (default: 200)
+  gridWidth (default: viewWidth)
+  gridHeight (default: viewHeight)
+  styleWidth (default: auto)
+  styleHeight (default: auto)
+  xCenter (default: undefined)
+  yCenter (default: undefined)
+  xDistance (default: undefined)
+  yDistance (default: xDistance)
+  bigNumbers (default: false)
+  colorScheme (default: undefined)
+  idStatus (default: empty string)
+
+Any property definition in the include tag overrides that property definition in the Front Matter.
+
+{% endcomment %}
+{% assign mandelbot = nil %}
+{% for m in page.mandelbots %}
+  {% if include.id == m.id %}
+    {% assign mandelbot = m %}
+    {% break %}
+  {% endif %}
+{% endfor %}
+{% assign id = include.id | default: 'default' %}
+{% assign viewWidth = include.viewWidth | default: mandelbot.viewWidth | default: '200' %}
+{% assign viewHeight = include.viewHeight | default: mandelbot.viewHeight | default: '200' %}
+{% assign gridWidth = include.gridWidth | default: mandelbot.gridWidth | default: viewWidth %}
+{% assign gridHeight = include.gridHeight | default: mandelbot.gridHeight | default: viewHeight %}
+{% assign styleWidth = include.styleWidth | default: mandelbot.styleWidth | default: 'auto' %}
+{% assign styleHeight = include.styleHeight | default: mandelbot.styleHeight | default: 'auto' %}
+{% capture viewStyle %}width: {{styleWidth}}; height: {{styleHeight}}{% endcapture %}
+{% assign xCenter = include.xCenter | default: mandelbot.xCenter | default: 'undefined' %}
+{% assign yCenter = include.yCenter | default: mandelbot.yCenter | default: 'undefined' %}
+{% assign xDistance = include.xDistance | default: mandelbot.xDistance | default: 'undefined' %}
+{% assign yDistance = include.yDistance | default: mandelbot.yDistance | default: xDistance %}
+{% assign colorScheme = include.colorScheme | default: mandelbot.colorScheme | default: 'undefined' %}
+{% assign idStatus = include.idStatus | default: mandelbot.idStatus | default: '' %}
+{% assign bigNumbers = include.bigNumbers | default: mandelbot.bigNumbers | default: 'false' %}
+{% capture parms %}"{{ id }}",{{ gridWidth }},{{ gridHeight }},{{ xCenter }},{{ yCenter }},{{ xDistance }},{{ yDistance }},{{ bigNumbers }},{{ colorScheme }},"{{ idStatus }}"{% endcapture %}
+<canvas class="mandelbot-view" id="{{ id }}" width="{{ viewWidth }}" height="{{ viewHeight }}" style="{{ viewStyle }}"></canvas>
+{% if idStatus != '' %}
+<p class="mandelbot-status" id="{{ idStatus }}">No status</p>
+{% endif %}
+<script type="text/javascript">initMandelbot({{ parms }});</script>

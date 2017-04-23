@@ -17,15 +17,17 @@
 // import * as BigNumber from "./bignumber/bignumber";
 
 let idTimeout = 0;
-let activeViewports = [];
-let iNextViewport = 0;
+let activeMandelbots = [];
+let iNextMandelbot = 0;
 let msTimeslice = (1000 / 60)|0;
 let nMaxIterationsPerNumber = 100;      // default maximum iterations per number
 let nMaxIterationsPerTimeslice;         // updated by a one-time call to calibrate() using normal numbers
 let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibrate() using BigNumbers instead
 
+let DEBUG = true;
+
 /**
- * @class Viewport
+ * @class Mandelbot
  * @unrestricted
  * @property {number} viewWidth
  * @property {number} viewHeight
@@ -54,9 +56,9 @@ let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibra
  * @property {number|BigNumber} xPos
  * @property {number|BigNumber} yPos
  */
-class Viewport {
+class Mandelbot {
     /**
-     * Viewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus)
+     * Mandelbot(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus)
      *
      * The constructor records information about the View canvas (eg, its dimensions, 2D context, etc), and then
      * creates the internal Grid canvas using the supplied dimensions, which usually match the View canvas dimensions
@@ -67,7 +69,7 @@ class Viewport {
      * those parameters are passed through to the BigNumber constructor as-is; otherwise, those parameters are coerced
      * to numbers using the unary "plus" operator.
      *
-     * @this {Viewport}
+     * @this {Mandelbot}
      * @param {string} idCanvas (the id of an existing view canvas; required)
      * @param {number} [gridWidth] (grid canvas width; default is view canvas width)
      * @param {number} [gridHeight] (grid canvas height; default is view canvas height)
@@ -76,7 +78,7 @@ class Viewport {
      * @param {number|string} [xDistance] (the distance from xCenter to the right and left sides of the initial image; default is 1.5)
      * @param {number|string} [yDistance] (the distance from yCenter to the top and bottom of the initial image; default is 1.5)
      * @param {boolean} [bigNumbers] (true to use BigNumbers for all floating-point calculations; default is false)
-     * @param {number} [colorScheme] (one of the Viewport.COLORSCHEME values; default is GRAY)
+     * @param {number} [colorScheme] (one of the Mandelbot.COLORSCHEME values; default is GRAY)
      * @param {string} [idStatus] (the id of an existing status control, if any)
      */
     constructor(idCanvas, gridWidth = 0, gridHeight = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, bigNumbers = false, colorScheme, idStatus)
@@ -99,8 +101,8 @@ class Viewport {
             this.yDistance = new BigNumber(yDistance).abs();
         }
         this.bigNumbers = bigNumbers;
-        this.colorScheme = (colorScheme !== undefined? colorScheme : Viewport.COLORSCHEME.GRAY);
-        this.nMaxIterations = Viewport.getMaxIterations(this.xDistance, this.yDistance);
+        this.colorScheme = (colorScheme !== undefined? colorScheme : Mandelbot.COLORSCHEME.GRAY);
+        this.nMaxIterations = Mandelbot.getMaxIterations(this.xDistance, this.yDistance);
         this.statusMessage = "X: " + this.xCenter + " (+/-" + this.xDistance + ") Y: " + this.yCenter + " (+/-" + this.yDistance + ") Iterations: " + this.nMaxIterations + (bigNumbers? " (BigNumbers)" : "");
         this.aResults = [0, 0, 0, 0];
         try {
@@ -124,7 +126,7 @@ class Viewport {
     /**
      * initView(idCanvas)
      *
-     * @this {Viewport}
+     * @this {Mandelbot}
      * @param {string} idCanvas
      * @return {boolean}
      */
@@ -146,6 +148,7 @@ class Viewport {
                  * Refer to: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled
                  */
                 this.contextView['imageSmoothingEnabled'] = false;
+                this.initTouch(this.canvasView);
                 return true;
             }
         }
@@ -156,7 +159,7 @@ class Viewport {
     /**
      * initGrid(gridWidth, gridHeight)
      *
-     * @this {Viewport}
+     * @this {Mandelbot}
      * @param {number} gridWidth
      * @param {number} gridHeight
      * @return {boolean}
@@ -179,13 +182,164 @@ class Viewport {
     }
 
     /**
+     * initTouch(control)
+     *
+     * @this {Mandelbot}
+     * @param {HTMLCanvasElement} control
+     */
+    initTouch(control)
+    {
+        let mandelbot = this;
+
+        if (!this.controlTouch) {
+            this.controlTouch = control;
+
+            control.addEventListener(
+                'touchstart',
+                function onTouchStart(event) { mandelbot.processTouchEvent(event, true); },
+                false                   // we'll specify false for the 'useCapture' parameter for now...
+            );
+            control.addEventListener(
+                'touchmove',
+                function onTouchMove(event) { mandelbot.processTouchEvent(event); },
+                true
+            );
+            control.addEventListener(
+                'touchend',
+                function onTouchEnd(event) { mandelbot.processTouchEvent(event, false); },
+                false                   // we'll specify false for the 'useCapture' parameter for now...
+            );
+
+            /*
+             * Using desktop mouse events to simulate touch events should only be enabled as needed.
+             */
+            if (DEBUG) {
+                control.addEventListener(
+                    'mousedown',
+                    function onMouseDown(event) { mandelbot.processTouchEvent(event, true); },
+                    false               // we'll specify false for the 'useCapture' parameter for now...
+                );
+                control.addEventListener(
+                    'mousemove',
+                    function onMouseMove(event) { mandelbot.processTouchEvent(event); },
+                    true
+                );
+                control.addEventListener(
+                    'mouseup',
+                    function onMouseUp(event) { mandelbot.processTouchEvent(event, false); },
+                    false               // we'll specify false for the 'useCapture' parameter for now...
+                );
+            }
+
+            this.xTouch = this.yTouch = -1;
+
+            /*
+             * As long as fTouchDefault is false, we call preventDefault() on every touch event, to prevent
+             * the page from moving/scrolling while the canvas is processing touch events.  However, there must
+             * also be exceptions to permit the soft keyboard to activate; see processTouchEvent() for details.
+             */
+            this.fTouchDefault = false;
+        }
+    }
+
+    /**
+     * processTouchEvent(event, fStart)
+     *
+     * If nTouchConfig is non-zero, touch event handlers are installed, which pass their events to this function.
+     *
+     * What we do with those events here depends on the value of nTouchConfig.  Originally, the only supported
+     * configuration was the experimental conversion of touch events into arrow keys, based on an invisible grid
+     * that divided the screen into thirds; that configuration is now identified as Video.TOUCH.KEYGRID.
+     *
+     * The new preferred configuration is Video.TOUCH.MOUSE, which does little more than allow you to "push" the
+     * simulated mouse around.  If Video.TOUCH.MOUSE is enabled, it's already been confirmed the machine has a mouse.
+     *
+     * @this {Mandelbot}
+     * @param {Event} event object from a 'touch' event
+     * @param {boolean} [fStart] (true if 'touchstart', false if 'touchend', undefined if 'touchmove')
+     */
+    processTouchEvent(event, fStart)
+    {
+        let xTouch, yTouch;
+
+        // if (!event) event = window.event;
+
+        /*
+         * Touch coordinates (that is, the pageX and pageY properties) are relative to the page, so to make
+         * them relative to the canvas, we must subtract the canvas's left and top positions.  This Apple web page:
+         *
+         *      https://developer.apple.com/library/safari/documentation/AudioVideo/Conceptual/HTML-canvas-guide/AddingMouseandTouchControlstoCanvas/AddingMouseandTouchControlstoCanvas.html
+         *
+         * makes it sound simple, but it turns out we have to walk the canvas' entire "parentage" of DOM elements
+         * to get the exact offsets.
+         *
+         * TODO: Determine whether the getBoundingClientRect() code used in panel.js for mouse events can also
+         * be used here to simplify this annoyingly complicated code for touch events.
+         */
+        let xTouchOffset = 0;
+        let yTouchOffset = 0;
+        let control = this.controlTouch;
+
+        do {
+            if (!isNaN(control.offsetLeft)) {
+                xTouchOffset += control.offsetLeft;
+                yTouchOffset += control.offsetTop;
+            }
+        } while ((control = control.offsetParent));
+
+        /*
+         * Due to the responsive nature of our pages, the displayed size of the canvas may be smaller than the
+         * allocated size, and the coordinates we receive from touch events are based on the currently displayed size.
+         */
+        let xScale =  this.viewWidth / this.controlTouch.offsetWidth;
+        let yScale = this.viewHeight / this.controlTouch.offsetHeight;
+
+        /**
+         * @name Event
+         * @property {Array} targetTouches
+         */
+        if (!event.targetTouches || !event.targetTouches.length) {
+            xTouch = event.pageX;
+            yTouch = event.pageY;
+        } else {
+            xTouch = event.targetTouches[0].pageX;
+            yTouch = event.targetTouches[0].pageY;
+        }
+
+        xTouch = ((xTouch - xTouchOffset) * xScale);
+        yTouch = ((yTouch - yTouchOffset) * yScale);
+
+        if (!this.fTouchDefault) event.preventDefault();
+
+        /*
+         * This 'touchmove" code mimics the 'mousemove' event processing in processMouseEvent() in mouse.js, with
+         * one important difference: every time touching "restarts", we need to reset the variables used to calculate
+         * the deltas, so that the mere act of lifting and replacing your finger doesn't generate a delta by itself.
+         */
+        if (fStart || this.xTouch < 0 || this.yTouch < 0) {
+            this.xTouch = xTouch;
+            this.yTouch = yTouch;
+        }
+
+        // let xDelta = Math.round(xTouch - this.xTouch);
+        // let yDelta = Math.round(yTouch - this.yTouch);
+
+        this.xTouch = xTouch;
+        this.yTouch = yTouch;
+
+        if (DEBUG) {
+            console.log("processTouchEvent(" + (fStart? "touchStart" : (fStart === false? "touchEnd" : "touchMove")) + ",x=" + this.xTouch + ",y=" + this.yTouch);
+        }
+    }
+
+    /**
      * prepGrid()
      *
      * Prepares colPos and rowPos (the next position on the grid to be updated), along with xPos and yPos
      * (the x and y coordinates associated with that grid position) and xInc and yInc, the intermediate
      * incremental x and y values that are constant for the duration of the next overall updateGrid() operation.
      *
-     * @this {Viewport}
+     * @this {Mandelbot}
      */
     prepGrid()
     {
@@ -210,10 +364,10 @@ class Viewport {
     /**
      * updateGrid()
      *
-     * Continues updating the Viewport's grid where we left off, until either the entire grid has been updated OR
+     * Continues updating the Mandelbot's grid where we left off, until either the entire grid has been updated OR
      * we have exhausted the maximum number of iterations allowed for the current timeslice.
      *
-     * @this {Viewport}
+     * @this {Mandelbot}
      * @return {boolean} (true if grid was updated, false if no change)
      */
     updateGrid()
@@ -222,12 +376,12 @@ class Viewport {
         let colDirty = this.colPos;
         let rowDirty = this.rowPos;
         let colsDirty = 0, rowsDirty = 0;
-        let nMaxIterationsTotal = Math.floor((this.bigNumbers? nMaxBigIterationsPerTimeslice : nMaxIterationsPerTimeslice) / activeViewports.length);
+        let nMaxIterationsTotal = Math.floor((this.bigNumbers? nMaxBigIterationsPerTimeslice : nMaxIterationsPerTimeslice) / activeMandelbots.length);
         while (this.rowPos < this.gridHeight) {
             while (nMaxIterationsTotal > 0 && this.colPos < this.gridWidth) {
                 let m = this.nMaxIterations;
-                let n = Viewport.isMandelbrot(this.xPos, this.yPos, m, this.aResults);
-                this.setGridPixel(this.rowPos, this.colPos, Viewport.getColor(this.colorScheme, this.aResults));
+                let n = Mandelbot.isMandelbrot(this.xPos, this.yPos, m, this.aResults);
+                this.setGridPixel(this.rowPos, this.colPos, Mandelbot.getColor(this.colorScheme, this.aResults));
                 if (!this.bigNumbers) {
                     this.xPos += this.xInc;
                 } else {
@@ -261,7 +415,7 @@ class Viewport {
     /**
      * drawGrid(colDirty, rowDirty, colsDirty, rowsDirty)
      *
-     * @this {Viewport}
+     * @this {Mandelbot}
      * @param {number} [colDirty]
      * @param {number} [rowDirty]
      * @param {number} [colsDirty]
@@ -276,7 +430,7 @@ class Viewport {
     /**
      * setGridPixel(row, col, nRGB)
      *
-     * @this {Viewport}
+     * @this {Mandelbot}
      * @param {number} row
      * @param {number} col
      * @param {number} nRGB
@@ -314,7 +468,7 @@ class Viewport {
                 nIterationsInc *= 2;
                 let x = bigNumbers? new BigNumber(-0.5) : -0.5;
                 let y = bigNumbers? new BigNumber(0) : 0;
-                let n = Viewport.isMandelbrot(x, y, nIterationsStart + nIterationsInc);
+                let n = Mandelbot.isMandelbrot(x, y, nIterationsStart + nIterationsInc);
                 msTotal = Date.now() - msStart;
                 if (msTotal >= msTimeslice) break;
                 nIterationsTotal += (nIterationsStart + nIterationsInc) - n;
@@ -468,24 +622,24 @@ class Viewport {
 
         if (aResults[1]) {      // if the number is NOT in the Mandelbrot set, then choose another color
 
-            let v = Viewport.getSmoothColor(aResults);
+            let v = Mandelbot.getSmoothColor(aResults);
 
             switch (colorScheme) {
-            case Viewport.COLORSCHEME.BW:
+            case Mandelbot.COLORSCHEME.BW:
             default:
                 nRGB = -1;      // -1 is white (0xffffff)
                 break;
-            case Viewport.COLORSCHEME.HSV1:
-                nRGB = Viewport.getRGBFromHSV(360 * v / aResults[0], 1.0, 1.0);
+            case Mandelbot.COLORSCHEME.HSV1:
+                nRGB = Mandelbot.getRGBFromHSV(360 * v / aResults[0], 1.0, 1.0);
                 break;
-            case Viewport.COLORSCHEME.HSV2:
-            case Viewport.COLORSCHEME.HSV3:
-                nRGB = Viewport.getRGBFromHSV(360 * v / aResults[0], 1.0, 10.0 * v / aResults[0]);
+            case Mandelbot.COLORSCHEME.HSV2:
+            case Mandelbot.COLORSCHEME.HSV3:
+                nRGB = Mandelbot.getRGBFromHSV(360 * v / aResults[0], 1.0, 10.0 * v / aResults[0]);
                 if (colorScheme == 3) {
                     nRGB = (nRGB & 0xff00ff00) | ((nRGB >> 16) & 0xff) | ((nRGB & 0xff) << 16);     // swap red and blue
                 }
                 break;
-            case Viewport.COLORSCHEME.GRAY:
+            case Mandelbot.COLORSCHEME.GRAY:
                 v = Math.floor(512.0 * v / aResults[0]);
                 if (v > 0xff) v = 0xff;
                 nRGB = v | (v << 8) | (v << 16);
@@ -567,11 +721,11 @@ class Viewport {
     static getSmoothColor(aResults)
     {
         let n = aResults[0] - aResults[1];
-        return 5 + n - Viewport.LOG_HALFBASE - Math.log(Math.log(aResults[2] + aResults[3])) * Viewport.LOG_BASE;
+        return 5 + n - Mandelbot.LOG_HALFBASE - Math.log(Math.log(aResults[2] + aResults[3])) * Mandelbot.LOG_BASE;
     }
 }
 
-Viewport.COLORSCHEME = {
+Mandelbot.COLORSCHEME = {
     BW:     0,  // B&W
     HSV1:   1,  // HSV1
     HSV2:   2,  // HSV2
@@ -579,16 +733,16 @@ Viewport.COLORSCHEME = {
     GRAY:   4   // GRAYSCALE
 };
 
-Viewport.LOG_BASE = 1.0 / Math.log(2.0);
-Viewport.LOG_HALFBASE = Math.log(0.5) * Viewport.LOG_BASE;
+Mandelbot.LOG_BASE = 1.0 / Math.log(2.0);
+Mandelbot.LOG_HALFBASE = Math.log(0.5) * Mandelbot.LOG_BASE;
 
-nMaxIterationsPerTimeslice = Viewport.calibrate(0, 8);
-nMaxBigIterationsPerTimeslice = Viewport.calibrate(0, 8, true);
+nMaxIterationsPerTimeslice = Mandelbot.calibrate(0, 8);
+nMaxBigIterationsPerTimeslice = Mandelbot.calibrate(0, 8, true);
 
 /**
- * initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus, fAutoUpdate)
+ * initMandelbot(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus, fAutoUpdate)
  *
- * Global function for creating new Viewports.
+ * Global function for creating new Mandelbots.
  *
  * @param {string} idCanvas
  * @param {number} [gridWidth]
@@ -600,62 +754,62 @@ nMaxBigIterationsPerTimeslice = Viewport.calibrate(0, 8, true);
  * @param {boolean} [bigNumbers]
  * @param {number|undefined} [colorScheme]
  * @param {string} [idStatus]
- * @param {boolean} [fAutoUpdate] (true to add the Viewport to the set of automatically updated Viewports)
- * @return {Viewport}
+ * @param {boolean} [fAutoUpdate] (true to add the Mandelbot to the set of automatically updated Mandelbots)
+ * @return {Mandelbot}
  */
-function initViewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus, fAutoUpdate = true)
+function initMandelbot(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus, fAutoUpdate = true)
 {
-    let viewport = new Viewport(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus);
-    if (fAutoUpdate) addViewport(viewport);
-    return viewport;
+    let mandelbot = new Mandelbot(idCanvas, gridWidth, gridHeight, xCenter, yCenter, xDistance, yDistance, bigNumbers, colorScheme, idStatus);
+    if (fAutoUpdate) addMandelbot(mandelbot);
+    return mandelbot;
 }
 
 /**
- * addViewport(viewport)
+ * addMandelbot(mandelbot)
  *
- * Adds the viewport to the array of auto-updated Viewports.  initViewport() does this automatically, unless told otherwise.
+ * Adds the Mandelbot to the array of auto-updated Mandelbots.  initMandelbot() does this automatically, unless told otherwise.
  *
- * @param {Viewport} viewport
+ * @param {Mandelbot} mandelbot
  */
-function addViewport(viewport)
+function addMandelbot(mandelbot)
 {
-    activeViewports.push(viewport);
-    updateViewports(true);
+    activeMandelbots.push(mandelbot);
+    updateMandelbots(true);
 }
 
 /**
- * updateViewports(fInit)
+ * updateMandelbots(fInit)
  *
- * setTimeout() handler for updating all Viewports.  addViewport() does this automatically to ensure an update has been scheduled.
+ * setTimeout() handler for updating all Mandelbots.  addMandelbot() does this automatically to ensure an update has been scheduled.
  *
  * @param {boolean} [fInit]
  */
-function updateViewports(fInit)
+function updateMandelbots(fInit)
 {
     if (!fInit) {
         idTimeout = 0;
-        let nViewports = activeViewports.length;
-        while (nViewports--) {
-            let viewport = activeViewports[iNextViewport];
-            if (viewport.updateGrid()) {
+        let nMandelbots = activeMandelbots.length;
+        while (nMandelbots--) {
+            let mandelbot = activeMandelbots[iNextMandelbot];
+            if (mandelbot.updateGrid()) {
                 /*
-                 * Since the grid was updated, we set the fInit flag to ensure that at least one more updateViewports()
+                 * Since the grid was updated, we set the fInit flag to ensure that at least one more updateMandelbots()
                  * call will be scheduled via setTimeout().  Even though it's possible that the grid was FULLY updated,
-                 * I'm happy to wait until the next updateViewports() call to find that out; updateGrid() will then report
+                 * I'm happy to wait until the next updateMandelbots() call to find that out; updateGrid() will then report
                  * there was nothing to update, and once ALL the grids on the page report the same thing, we'll stop
                  * scheduling these calls.
                  */
                 fInit = true;
             }
-            if (++iNextViewport >= activeViewports.length) iNextViewport = 0;
+            if (++iNextMandelbot >= activeMandelbots.length) iNextMandelbot = 0;
         }
     }
     /*
      * Schedule a new call for immediate execution if there were any updates (otherwise, we assume all our work is done).
      */
     if (fInit && !idTimeout) {
-        idTimeout = setTimeout(updateViewports, 0);
+        idTimeout = setTimeout(updateMandelbots, 0);
     }
 }
 
-window['initViewport'] = initViewport;
+window['initMandelbot'] = initMandelbot;

@@ -85,16 +85,16 @@ Configuration
 -------------
 
 Mandelbots are added to [Jekyll](https://jekyllrb.com/) documents on the [Mandelbot website](http://mandelbot.net)
-using the [Viewport](_includes/viewport.html) include file:
+using the [Mandelbot](_includes/mandelbot.html) include file:
 
-	{% include viewport.html id="mandelbot1" viewWidth="200" viewHeight="200" %}
+	{% include mandelbot.html id="mandelbot1" viewWidth="200" viewHeight="200" %}
 	
-For documents containing multiple Mandelbots, it may be more convenient to define each viewport's configuration parameters
+For documents containing multiple Mandelbots, it may be more convenient to define each Mandelbot's configuration parameters
 at the top of the document, inside the document's [Front Matter](https://jekyllrb.com/docs/frontmatter/):
 
 	---
 	...
-	viewports:
+	mandelbots:
 	  - id: mandelbot1
 	    viewWidth: 200
 	    viewHeight: 200
@@ -103,42 +103,42 @@ at the top of the document, inside the document's [Front Matter](https://jekyllr
 
 Then each Mandelbot can be added with just an *id* parameter:
 
-	{% include viewport.html id="mandelbot1" %}
+	{% include mandelbot.html id="mandelbot1" %}
 
-Examples of both inline and predefined Mandelbot viewports can be found in the project's [home page](INDEX.md).
+Examples of both inline and predefined Mandelbot can be found in the project's [home page](INDEX.md).
 
-Viewports support the following properties:
+Mandelbots support the following properties:
 
 - *id*: the unique *id* to use for the generated `<canvas>` element
-- *viewWidth*: the width of the viewport canvas, in pixels (default: 200)
-- *viewHeight*: the height of the viewport canvas, in pixels (default: 200)
+- *viewWidth*: the width of the view canvas, in pixels (default: 200)
+- *viewHeight*: the height of the view canvas, in pixels (default: 200)
 - *gridWidth*: the width of the grid canvas on which numbers will plotted, in pixels (default: viewWidth)
 - *gridHeight*: the height of the grid canvas on which numbers will plotted, in pixels (default: viewHeight)
-- *styleWidth*: the width used to display the viewport canvas (default: auto)
-- *styleHeight*: the height used to display the viewport canvas (default: auto)
+- *styleWidth*: the width used to display the view canvas (default: auto)
+- *styleHeight*: the height used to display the view canvas (default: auto)
 - *xCenter*: the x coordinate of the center of the initial image (default: -0.5)
 - *yCenter*: the y coordinate of the center of the initial image (default: 0)
 - *xDistance*: the distance from xCenter to the right and left sides of the initial image (default: 1.5)
 - *yDistance*: the distance from yCenter to the top and bottom of the initial image (default: xDistance)
 - *bigNumbers*: true to use BigNumbers for all floating-point calculations (default: false)
-- *colorScheme*: one of the Viewport.COLORSCHEME values (default: GRAY)
+- *colorScheme*: one of the Mandelbot.COLORSCHEME values (default: GRAY)
 - *idStatus*: a unique identifier for a text-based status control; if omitted, no control is generated
 
 *gridWidth* and *gridHeight* determine the resolution of the image to be calculated, while *viewWidth* and *viewHeight*
 determine the resolution used to display that image on the page.  They must be specified as numbers, and the units are pixels.
 
 The grid is essentially an internal canvas representing the Cartesian coordinate grid onto which all the complex numbers
-are plotted, after they have passed through the Mandelbrot set calculations.  The grid canvas is then drawn onto the viewport
+are plotted, after they have passed through the Mandelbrot set calculations.  The grid canvas is then drawn onto the view
 canvas.  By default, the canvas sizes are the same, but different values can be used to create different aspect ratios, scaling
 effects, etc.  And the use of two canvases makes the code more flexible, because it provides automatic double-buffering,
 which is an important feature in animation.
 
-*styleWidth* and *styleHeight* control how your browser displays the viewport; they are simply passed through to the browser
+*styleWidth* and *styleHeight* control how your browser displays the view canvas; they are simply passed through to the browser
 as standard CSS *width* and *height* properties on the `canvas` element using the *style* attribute.  *auto* is the default for
 both properties.  You can also specify numbers of pixels, but since these are CSS properties, you must also specify the units
 (eg, *px*).  For example, a *styleWidth* of *200px* enforces a display width of 200 pixels.
 
-Generally, the only reason to alter the style settings is to make the viewport responsive (ie, to fill the page as the width
+Generally, the only reason to alter the style settings is to make the view canvas responsive (ie, to fill the page as the width
 of the page changes).  This is commonly done by setting *styleWidth* to *100%*.
 
 Modification
