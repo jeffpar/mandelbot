@@ -27,23 +27,23 @@ let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibra
 /**
  * @class Viewport
  * @unrestricted
- * @property {boolean} bigNumbers
+ * @property {number} viewWidth
+ * @property {number} viewHeight
+ * @property {number} gridWidth
+ * @property {number} gridHeight
  * @property {number|BigNumber} xCenter
  * @property {number|BigNumber} yCenter
  * @property {number|BigNumber} xDistance
  * @property {number|BigNumber} yDistance
+ * @property {boolean} bigNumbers
  * @property {number} colorScheme
  * @property {number} nMaxIterations
  * @property {string} statusMessage
  * @property {Array.<number>} aResults
  * @property {HTMLCanvasElement} canvasView
- * @property {number} viewWidth
- * @property {number} viewHeight
  * @property {CanvasRenderingContext2D} contextView
  * @property {ImageData} imageGrid
  * @property {HTMLCanvasElement} canvasGrid
- * @property {number} gridWidth
- * @property {number} gridHeight
  * @property {CanvasRenderingContext2D} contextGrid
  * @property {number} colPos
  * @property {number} rowPos
@@ -100,7 +100,7 @@ class Viewport {
         }
         this.bigNumbers = bigNumbers;
         this.colorScheme = (colorScheme !== undefined? colorScheme : Viewport.COLORSCHEME.GRAY);
-        this.nMaxIterations = this.getMaxIterations();  // formerly hard-coded to nMaxIterationsPerNumber
+        this.nMaxIterations = Viewport.getMaxIterations(this.xDistance, this.yDistance);
         this.statusMessage = "X: " + this.xCenter + " (+/-" + this.xDistance + ") Y: " + this.yCenter + " (+/-" + this.yDistance + ") Iterations: " + this.nMaxIterations + (bigNumbers? " (BigNumbers)" : "");
         this.aResults = [0, 0, 0, 0];
         try {
@@ -182,8 +182,8 @@ class Viewport {
      * prepGrid()
      *
      * Prepares colPos and rowPos (the next position on the grid to be updated), along with xPos and yPos
-     * (the x and y coordinates associated with that grid position) and the intermediate incremental x and y
-     * values that are constant for the duration of the next overall updateGrid() operation.
+     * (the x and y coordinates associated with that grid position) and xInc and yInc, the intermediate
+     * incremental x and y values that are constant for the duration of the next overall updateGrid() operation.
      *
      * @this {Viewport}
      */
@@ -227,7 +227,7 @@ class Viewport {
             while (nMaxIterationsTotal > 0 && this.colPos < this.gridWidth) {
                 let m = this.nMaxIterations;
                 let n = Viewport.isMandelbrot(this.xPos, this.yPos, m, this.aResults);
-                this.setGridPixel(this.rowPos, this.colPos, this.getColor(this.aResults));
+                this.setGridPixel(this.rowPos, this.colPos, Viewport.getColor(this.colorScheme, this.aResults));
                 if (!this.bigNumbers) {
                     this.xPos += this.xInc;
                 } else {
@@ -288,65 +288,6 @@ class Viewport {
         this.imageGrid.data[i+1] = (nRGB >> 8) & 0xff;
         this.imageGrid.data[i+2] = (nRGB >> 16) & 0xff;
         this.imageGrid.data[i+3] = 0xff;
-    }
-
-    /**
-     * getColor(aResults)
-     *
-     * Adapted from code in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
-     * Copyright 2012 by Christian Stigen Larsen.
-     * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
-     *
-     * @this {Viewport}
-     * @param {Array.<number>} aResults
-     * @return {number}
-     */
-    getColor(aResults)
-    {
-        let nRGB = 0;           // 0 is black (0x000000), used for numbers in the Mandelbrot set
-
-        if (aResults[1]) {      // if the number is NOT in the Mandelbrot set, then choose another color
-
-            let v = Viewport.getSmoothColor(aResults);
-
-            switch (this.colorScheme) {
-            case Viewport.COLORSCHEME.BW:
-            default:
-                nRGB = -1;      // -1 is white (0xffffff)
-                break;
-            case Viewport.COLORSCHEME.HSV1:
-                nRGB = Viewport.getRGBFromHSV(360 * v / aResults[0], 1.0, 1.0);
-                break;
-            case Viewport.COLORSCHEME.HSV2:
-            case Viewport.COLORSCHEME.HSV3:
-                nRGB = Viewport.getRGBFromHSV(360 * v / aResults[0], 1.0, 10.0 * v / aResults[0]);
-                if (this.colorScheme == 3) {
-                    nRGB = (nRGB & 0xff00ff00) | ((nRGB >> 16) & 0xff) | ((nRGB & 0xff) << 16);     // swap red and blue
-                }
-                break;
-            case Viewport.COLORSCHEME.GRAY:
-                v = Math.floor(512.0 * v / aResults[0]);
-                if (v > 0xff) v = 0xff;
-                nRGB = v | (v << 8) | (v << 16);
-                break;
-            }
-        }
-        return nRGB;
-    }
-
-    /**
-     * getMaxIterations()
-     *
-     * Adapted from code in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
-     * Copyright 2012 by Christian Stigen Larsen.
-     * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
-     *
-     * @this {Viewport}
-     * @return {number}
-     */
-    getMaxIterations()
-    {
-        return Math.floor(223.0 / Math.sqrt(0.001 + 4.0 * Math.min(this.xDistance, this.yDistance)));
     }
 
     /**
@@ -431,7 +372,7 @@ class Viewport {
          *
          *      (a * a) + (2 * a * b * i) - (b * b)
          *
-         * So the real and imaginary coefficients for z{n+1}, after adding c, which is (x + yi), are:
+         * So the real and imaginary coefficients for z{n+1}, after adding c, which we said was (x + yi), are:
          *
          *      a{n+1} = (a * a) - (b * b) + x
          *      b{n+1} = (2 * a * b) + y
@@ -444,7 +385,7 @@ class Viewport {
          *      m = Math.sqrt(a^2 + b^2)
          *
          * To avoid a sqrt() operation, we can simply calculate m = (a * a) + (b * b) and compare that to 4 instead;
-         * happily, we've already calculated (a * a) and (b * b), so calculating m is just an additional addition.
+         * happily, we've already calculated (a * a) and (b * b), so calculating m is just an additional, um, addition.
          *
          * TODO: I need to find something conclusive regarding whether the "escape" criteria is >= 2 or > 2.  The code
          * assumes the former, in part because this is what the original Scientific American article from August 1985 said:
@@ -508,6 +449,66 @@ class Viewport {
             aResults[3] = bb;
         }
         return n;
+    }
+
+    /**
+     * getColor(colorScheme, aResults)
+     *
+     * Adapted from code in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
+     * Copyright 2012 by Christian Stigen Larsen.
+     * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
+     *
+     * @param {number} colorScheme
+     * @param {Array.<number>} aResults
+     * @return {number}
+     */
+    static getColor(colorScheme, aResults)
+    {
+        let nRGB = 0;           // 0 is black (0x000000), used for numbers in the Mandelbrot set
+
+        if (aResults[1]) {      // if the number is NOT in the Mandelbrot set, then choose another color
+
+            let v = Viewport.getSmoothColor(aResults);
+
+            switch (colorScheme) {
+            case Viewport.COLORSCHEME.BW:
+            default:
+                nRGB = -1;      // -1 is white (0xffffff)
+                break;
+            case Viewport.COLORSCHEME.HSV1:
+                nRGB = Viewport.getRGBFromHSV(360 * v / aResults[0], 1.0, 1.0);
+                break;
+            case Viewport.COLORSCHEME.HSV2:
+            case Viewport.COLORSCHEME.HSV3:
+                nRGB = Viewport.getRGBFromHSV(360 * v / aResults[0], 1.0, 10.0 * v / aResults[0]);
+                if (colorScheme == 3) {
+                    nRGB = (nRGB & 0xff00ff00) | ((nRGB >> 16) & 0xff) | ((nRGB & 0xff) << 16);     // swap red and blue
+                }
+                break;
+            case Viewport.COLORSCHEME.GRAY:
+                v = Math.floor(512.0 * v / aResults[0]);
+                if (v > 0xff) v = 0xff;
+                nRGB = v | (v << 8) | (v << 16);
+                break;
+            }
+        }
+        return nRGB;
+    }
+
+    /**
+     * getMaxIterations(xDistance, yDistance)
+     *
+     * Adapted from code in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
+     * Copyright 2012 by Christian Stigen Larsen.
+     * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
+     *
+     * @param {number} xDistance
+     * @param {number} yDistance
+     * @return {number}
+     */
+    static getMaxIterations(xDistance, yDistance)
+    {
+        return Math.floor(223.0 / Math.sqrt(0.001 + 4.0 * Math.min(xDistance, yDistance)));
     }
 
     /**
@@ -592,12 +593,12 @@ nMaxBigIterationsPerTimeslice = Viewport.calibrate(0, 8, true);
  * @param {string} idCanvas
  * @param {number} [gridWidth]
  * @param {number} [gridHeight]
- * @param {number} [xCenter]
- * @param {number} [yCenter]
- * @param {number} [xDistance]
- * @param {number} [yDistance]
+ * @param {number|string|undefined} [xCenter]
+ * @param {number|string|undefined} [yCenter]
+ * @param {number|string|undefined} [xDistance]
+ * @param {number|string|undefined} [yDistance]
  * @param {boolean} [bigNumbers]
- * @param {number} [colorScheme]
+ * @param {number|undefined} [colorScheme]
  * @param {string} [idStatus]
  * @param {boolean} [fAutoUpdate] (true to add the Viewport to the set of automatically updated Viewports)
  * @return {Viewport}
