@@ -24,7 +24,7 @@ let nMaxIterationsPerNumber = 100;      // default maximum iterations per number
 let nMaxIterationsPerTimeslice;         // updated by a one-time call to calibrate() using normal numbers
 let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibrate() using BigNumbers instead
 
-let DEBUG = true;
+let DEBUG = false;
 
 /**
  * @class Mandelbot
@@ -221,7 +221,7 @@ class Mandelbot {
                 );
                 control.addEventListener(
                     'mousemove',
-                    function onMouseMove(event) { mandelbot.processTouchEvent(event); },
+                    function onMouseMove(event) { if (mandelbot.xTouch >= 0) mandelbot.processTouchEvent(event); },
                     true
                 );
                 control.addEventListener(
@@ -306,29 +306,20 @@ class Mandelbot {
             yTouch = event.targetTouches[0].pageY;
         }
 
-        xTouch = ((xTouch - xTouchOffset) * xScale);
-        yTouch = ((yTouch - yTouchOffset) * yScale);
+        xTouch = Math.round((xTouch - xTouchOffset) * xScale);
+        yTouch = Math.round((yTouch - yTouchOffset) * yScale);
 
         if (!this.fTouchDefault) event.preventDefault();
-
-        /*
-         * This 'touchmove" code mimics the 'mousemove' event processing in processMouseEvent() in mouse.js, with
-         * one important difference: every time touching "restarts", we need to reset the variables used to calculate
-         * the deltas, so that the mere act of lifting and replacing your finger doesn't generate a delta by itself.
-         */
-        if (fStart || this.xTouch < 0 || this.yTouch < 0) {
-            this.xTouch = xTouch;
-            this.yTouch = yTouch;
-        }
-
-        // let xDelta = Math.round(xTouch - this.xTouch);
-        // let yDelta = Math.round(yTouch - this.yTouch);
 
         this.xTouch = xTouch;
         this.yTouch = yTouch;
 
         if (DEBUG) {
             console.log("processTouchEvent(" + (fStart? "touchStart" : (fStart === false? "touchEnd" : "touchMove")) + ",x=" + this.xTouch + ",y=" + this.yTouch);
+        }
+
+        if (fStart === false) {
+            this.xTouch = this.yTouch = -1;
         }
     }
 
