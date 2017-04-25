@@ -24,6 +24,7 @@ Mandelbots may also have the following properties:
 Any property definition in the include tag overrides that property definition in the Front Matter.
 
 {% endcomment %}
+
 {% assign mandelbot = nil %}
 {% for m in page.mandelbots %}
   {% if include.id == m.id %}
@@ -31,6 +32,7 @@ Any property definition in the include tag overrides that property definition in
     {% break %}
   {% endif %}
 {% endfor %}
+
 {% assign idView = include.id | default: 'default' %}
 {% assign widthView = include.widthView | default: mandelbot.widthView | default: '0' %}
 {% assign heightView = include.heightView | default: mandelbot.heightView | default: '0' %}
@@ -49,15 +51,19 @@ Any property definition in the include tag overrides that property definition in
 {% assign idReset = include.idReset | default: mandelbot.idReset | default: '' %}
 {% assign idPrevious = include.idPrevious | default: mandelbot.idPrevious | default: '' %}
 {% capture parms %}{{ widthGrid }},{{ heightGrid }},{{ xCenter }},{{ yCenter }},{{ dxCenter }},{{ dyCenter }},{{ bigNumbers }},{{ colorScheme }},"{{ idView }}","{{ idStatus }}"{% endcapture %}
+
 <canvas class="mandelbot-view" id="{{ idView }}" width="{{ widthView }}" height="{{ heightView }}" style="{{ viewStyle }}"></canvas>
-{% if idStatus != '' %}<p class="mandelbot-status" id="{{ idStatus }}">No status</p>{% endif %}
+
 {% if idReset != '' %}<button id="{{ idReset }}" type="button">Reset</button>{% endif %}
 {% if idPrevious != '' %}<button id="{{ idPrevious }}" type="button" disabled="disabled">Previous</button>{% endif %}
+
+{% if idStatus != '' %}<p class="mandelbot-status" id="{{ idStatus }}">No status</p>{% endif %}
+
 <script type="text/javascript">
   var mandelbot = newMandelbot({{ parms }});
   if (mandelbot) {
-    mandelbot.addControl(Mandelbot.CONTROL_STATUS, "{{ idStatus }}");
     mandelbot.addControl(Mandelbot.CONTROL_RESET, "{{ idReset }}");
     mandelbot.addControl(Mandelbot.CONTROL_PREVIOUS, "{{ idPrevious }}");
+    mandelbot.addControl(Mandelbot.CONTROL_STATUS, "{{ idStatus }}");
   }
 </script>
