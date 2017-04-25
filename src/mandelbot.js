@@ -34,9 +34,11 @@ let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibra
 /**
  * TODO: Bring the Mandelbot class property definitions up-to-date.
  *
- * It must be marked "unrestricted" because the Closure Compiler's default ("struct") requires that
- * all class properties be defined in the body of the constructor, which is extremely restrictive.
- * It should be sufficient for all properties to be defined by the constructor or any methods it calls.
+ * The class must be marked "unrestricted" because the Closure Compiler's default ("struct") requires
+ * that all class properties be defined in the body of the constructor, which is too restrictive.  I'd
+ * prefer a compilation mode somewhere between "struct" and "unrestricted" that requires all properties
+ * to be defined either by the constructor or any methods it calls, because that would help catch any
+ * lazily defined properties that may not not be initialized in time.  But that's not an option.
  *
  * @class Mandelbot
  * @unrestricted
