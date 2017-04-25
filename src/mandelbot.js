@@ -452,13 +452,13 @@ class Mandelbot {
                             dyCenter = ((rowEnd - rowBeg) * this.yInc) / 2;
                             xCenter = this.xLeft + (colBeg * this.xInc) + dxCenter;
                             yCenter = this.yTop  - (rowBeg * this.yInc) - dyCenter;
-                            this.prepGrid(xCenter, yCenter, dxCenter, dyCenter, true);
                         } else {
-                            // this.xCenter = new BigNumber(xCenter);
-                            // this.yCenter = new BigNumber(yCenter);
-                            // this.dxCenter = new BigNumber(dxCenter).abs();
-                            // this.dyCenter = new BigNumber(dyCenter).abs();
+                            dxCenter = this.xInc.times(colEnd - colBeg).dividedBy(2);
+                            dyCenter = this.yInc.times(rowEnd - rowBeg).dividedBy(2);
+                            xCenter = this.xLeft.plus(this.xInc.times(colBeg)).plus(dxCenter);
+                            yCenter = this.yTop.minus(this.yInc.times(rowBeg)).minus(dyCenter);
                         }
+                        this.prepGrid(xCenter, yCenter, dxCenter, dyCenter, true);
                     }
                     this.widthSelect = this.heightSelect = 0;
                 }
@@ -466,11 +466,11 @@ class Mandelbot {
                     if (!this.bigNumbers) {
                         xCenter = this.xLeft + (colGrid * this.xInc);
                         yCenter = this.yTop  - (rowGrid * this.yInc);
-                        this.prepGrid(xCenter, yCenter, this.dxCenter, this.dyCenter, true);
                     } else {
-                        // this.xCenter = new BigNumber(xCenter);
-                        // this.yCenter = new BigNumber(yCenter);
+                        xCenter = this.xLeft.plus(this.xInc.times(colGrid));
+                        yCenter = this.yTop.minus(this.yInc.times(rowGrid));
                     }
+                    this.prepGrid(xCenter, yCenter, this.dxCenter, this.dyCenter, true);
                 }
                 this.colSelect = this.rowSelect = -1;
             }
@@ -492,7 +492,6 @@ class Mandelbot {
     {
         if (this.colSelect >= 0) {
             this.contextGrid.putImageData(this.imageGrid, 0, 0);
-            // this.drawGrid(this.colSelect, this.rowSelect, this.widthSelect, this.heightSelect);
         }
     }
 
