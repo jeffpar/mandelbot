@@ -5,7 +5,7 @@ mandelbots:
     widthView: 1024
     heightView: 1024
     widthStyle: 100%
-    colorScheme: Mandelbot.COLOR_SCHEME.GRAY
+    colorScheme: Mandelbot.COLOR_SCHEME.HSV3
     bigNumbers: false
     idStatus: status1
     idReset: reset1

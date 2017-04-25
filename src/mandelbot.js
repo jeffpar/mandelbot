@@ -325,6 +325,10 @@ class Mandelbot {
                 'mouseup',
                 function onMouseUp(event) { mandelbot.processSelectEvent(event, false); }
             );
+            control.addEventListener(
+                'mouseout',
+                function onMouseUp(event) { mandelbot.processSelectEvent(event, false); }
+            );
         }
     }
 
@@ -429,16 +433,6 @@ class Mandelbot {
                     let rowBeg = this.rowSelect;
                     let colEnd = this.colSelect + this.widthSelect;
                     let rowEnd = this.rowSelect + this.heightSelect;
-                    if (colEnd < 0) {
-                        colEnd = 0;
-                    } else if (colEnd > this.widthGrid) {
-                        colEnd = this.widthGrid;
-                    }
-                    if (rowEnd < 0) {
-                        rowEnd = 0;
-                    } else if (rowEnd > this.heightGrid) {
-                        rowEnd = this.heightGrid;
-                    }
                     if (colEnd < colBeg) {
                         colBeg = colEnd;
                         colEnd = this.colSelect;
@@ -1072,10 +1066,10 @@ Mandelbot.LOG_HALFBASE = Math.log(0.5) * Mandelbot.LOG_BASE;
 
 Mandelbot.KEY = {
     ID:         "id",
-    XCENTER:    "xCenter",
-    YCENTER:    "yCenter",
-    DXCENTER:   "dxCenter",
-    DYCENTER:   "dyCenter"
+    XCENTER:    "x",
+    YCENTER:    "y",
+    DXCENTER:   "dx",
+    DYCENTER:   "dy"
 };
 
 Mandelbot['COLOR_SCHEME'] = {
