@@ -90,7 +90,7 @@ class Mandelbot {
      * but since both those operations are performed on the Grid canvas first, before View canvas is updated, there's
      * no risk of flicker.
      *
-     * Any of the four x,y coordinate parameters can be specified as numbers OR strings, because strings may be needed
+     * Any of the coordinate parameters (x,y,dx,dy) can be specified as numbers OR strings, since strings may be needed
      * to represent BigNumbers that can't be expressed as a 64-bit floating-point numbers.  If bigNumbers is true, then
      * those parameters are passed through to the BigNumber constructor as-is; otherwise, those parameters are coerced
      * to numbers using the unary "plus" operator.
