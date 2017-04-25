@@ -121,7 +121,7 @@ Mandelbots support the following properties:
 - *dxCenter*: the distance from xCenter to the right and left sides of the initial image (default: 1.5)
 - *dyCenter*: the distance from yCenter to the top and bottom of the initial image (default: dxCenter)
 - *bigNumbers*: true to use BigNumbers for all floating-point calculations (default: false)
-- *colorScheme*: one of the Mandelbot.COLORSCHEME values (default: GRAY)
+- *colorScheme*: one of the Mandelbot.COLOR_SCHEME values (default: GRAY)
 - *idStatus*: a unique identifier for a text-based status control; if omitted, no control is generated
 
 *widthGrid* and *heightGrid* determine the resolution of the image to be calculated, while *widthView* and *heightView*
@@ -130,8 +130,8 @@ determine the resolution used to display that image on the page.  They must be s
 The grid is essentially an internal canvas representing the Cartesian coordinate grid onto which all the complex numbers
 are plotted, after they have passed through the Mandelbrot set calculations.  The grid canvas is then drawn onto the view
 canvas.  By default, the canvas sizes are the same, but different values can be used to create different aspect ratios, scaling
-effects, etc.  And the use of two canvases makes the code more flexible, because it provides automatic double-buffering,
-which is an important feature in animation.
+effects, etc.  The use of two canvases also provides automatic double-buffering, ensuring the smooth animation of current and
+future visual effects, such as the drawing of the selection rectangle.
 
 *widthStyle* and *heightStyle* control how your browser displays the view canvas; they are simply passed through to the browser
 as standard CSS *width* and *height* properties on the `canvas` element using the *style* attribute.  *auto* is the default for
