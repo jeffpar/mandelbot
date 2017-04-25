@@ -1,16 +1,18 @@
 ---
 permalink: /
 mandelbots:
-  - id: mandelbot5
+  - id: mandelbot1
     widthView: 1024
     heightView: 1024
     widthStyle: 100%
-    colorScheme: 0
+    colorScheme: Mandelbot.COLOR_SCHEME.GRAY
     bigNumbers: false
-    idStatus: status5
+    idStatus: status1
+    idReset: reset1
+    idPrevious: prev1
 ---
 
 Welcome to Mandelbot
 --------------------
 
-{% include mandelbot.html id="mandelbot1" widthView="1024" heightView="1024" widthStyle="100%" colorScheme="4" idStatus="status1" %}
+{% include mandelbot.html id="mandelbot1" %}

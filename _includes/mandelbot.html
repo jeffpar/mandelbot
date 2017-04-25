@@ -11,13 +11,15 @@ Mandelbots may also have the following properties:
   heightGrid (default: heightView)
   widthStyle (default: auto)
   heightStyle (default: auto)
-  xCenter (default: undefined)
-  yCenter (default: undefined)
-  xDistance (default: undefined)
-  yDistance (default: xDistance)
+  xCenter (default: -0.5)
+  yCenter (default: 0)
+  dxCenter (default: 1.5)
+  dyCenter (default: dxCenter)
   bigNumbers (default: false)
-  colorScheme (default: undefined)
-  idStatus (default: empty string)
+  colorScheme (default: Mandelbot.COLOR_SCHEME.GRAY)
+  idStatus (default: "")
+  idReset (default: "")
+  idPrevious (default: "")
 
 Any property definition in the include tag overrides that property definition in the Front Matter.
 
@@ -30,8 +32,8 @@ Any property definition in the include tag overrides that property definition in
   {% endif %}
 {% endfor %}
 {% assign idView = include.id | default: 'default' %}
-{% assign widthView = include.widthView | default: mandelbot.widthView | default: '200' %}
-{% assign heightView = include.heightView | default: mandelbot.heightView | default: '200' %}
+{% assign widthView = include.widthView | default: mandelbot.widthView | default: '0' %}
+{% assign heightView = include.heightView | default: mandelbot.heightView | default: '0' %}
 {% assign widthGrid = include.widthGrid | default: mandelbot.widthGrid | default: widthView %}
 {% assign heightGrid = include.heightGrid | default: mandelbot.heightGrid | default: heightView %}
 {% assign widthStyle = include.widthStyle | default: mandelbot.widthStyle | default: 'auto' %}
@@ -39,14 +41,23 @@ Any property definition in the include tag overrides that property definition in
 {% capture viewStyle %}width: {{widthStyle}}; height: {{heightStyle}}{% endcapture %}
 {% assign xCenter = include.xCenter | default: mandelbot.xCenter | default: 'undefined' %}
 {% assign yCenter = include.yCenter | default: mandelbot.yCenter | default: 'undefined' %}
-{% assign xDistance = include.xDistance | default: mandelbot.xDistance | default: 'undefined' %}
-{% assign yDistance = include.yDistance | default: mandelbot.yDistance | default: xDistance %}
+{% assign dxCenter = include.dxCenter | default: mandelbot.dxCenter | default: 'undefined' %}
+{% assign dyCenter = include.dyCenter | default: mandelbot.dyCenter | default: dxCenter %}
+{% assign bigNumbers = include.bigNumbers | default: mandelbot.bigNumbers | default: 'false' %}
 {% assign colorScheme = include.colorScheme | default: mandelbot.colorScheme | default: 'undefined' %}
 {% assign idStatus = include.idStatus | default: mandelbot.idStatus | default: '' %}
-{% assign bigNumbers = include.bigNumbers | default: mandelbot.bigNumbers | default: 'false' %}
-{% capture parms %}{{ widthGrid }},{{ heightGrid }},{{ xCenter }},{{ yCenter }},{{ xDistance }},{{ yDistance }},{{ bigNumbers }},{{ colorScheme }},"{{ idView }}","{{ idStatus }}"{% endcapture %}
+{% assign idReset = include.idReset | default: mandelbot.idReset | default: '' %}
+{% assign idPrevious = include.idPrevious | default: mandelbot.idPrevious | default: '' %}
+{% capture parms %}{{ widthGrid }},{{ heightGrid }},{{ xCenter }},{{ yCenter }},{{ dxCenter }},{{ dyCenter }},{{ bigNumbers }},{{ colorScheme }},"{{ idView }}","{{ idStatus }}"{% endcapture %}
 <canvas class="mandelbot-view" id="{{ idView }}" width="{{ widthView }}" height="{{ heightView }}" style="{{ viewStyle }}"></canvas>
-{% if idStatus != '' %}
-<p class="mandelbot-status" id="{{ idStatus }}">No status</p>
-{% endif %}
-<script type="text/javascript">initMandelbot({{ parms }});</script>
+{% if idStatus != '' %}<p class="mandelbot-status" id="{{ idStatus }}">No status</p>{% endif %}
+{% if idReset != '' %}<button id="{{ idReset }}" type="button">Reset</button>{% endif %}
+{% if idPrevious != '' %}<button id="{{ idPrevious }}" type="button" disabled="disabled">Previous</button>{% endif %}
+<script type="text/javascript">
+  var mandelbot = newMandelbot({{ parms }});
+  if (mandelbot) {
+    mandelbot.addControl(Mandelbot.CONTROL_STATUS, "{{ idStatus }}");
+    mandelbot.addControl(Mandelbot.CONTROL_RESET, "{{ idReset }}");
+    mandelbot.addControl(Mandelbot.CONTROL_PREVIOUS, "{{ idPrevious }}");
+  }
+</script>
