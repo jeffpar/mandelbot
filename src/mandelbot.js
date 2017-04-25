@@ -96,10 +96,10 @@ class Mandelbot {
      * @this {Mandelbot}
      * @param {number} [widthGrid] (grid canvas width; default is view canvas width)
      * @param {number} [heightGrid] (grid canvas height; default is view canvas height)
-     * @param {number|string} [xCenter] (the x coordinate of the center of the initial image; default is -0.5)
-     * @param {number|string} [yCenter] (the y coordinate of the center of the initial image; default is 0)
-     * @param {number|string} [dxCenter] (the distance from xCenter to the right and left sides of the initial image; default is 1.5)
-     * @param {number|string} [dyCenter] (the distance from yCenter to the top and bottom of the initial image; default is 1.5)
+     * @param {number|string} [xCenter] (the x coordinate of the center of the image; default is -0.5)
+     * @param {number|string} [yCenter] (the y coordinate of the center of the image; default is 0)
+     * @param {number|string} [dxCenter] (the distance from xCenter to the sides of the image; default is 1.5)
+     * @param {number|string} [dyCenter] (the distance from yCenter to the top/bottom of the image; default is 1.5)
      * @param {boolean} [bigNumbers] (true to use BigNumbers for all floating-point calculations; default is false)
      * @param {number} [colorScheme] (one of the Mandelbot.COLOR_SCHEME values; default is GRAY)
      * @param {string} [idView] (the id of an existing view canvas, if any)
@@ -155,12 +155,14 @@ class Mandelbot {
 
         case Mandelbot['CONTROL_RESET']:
             /*
-             * The RESET control, if any, doesn't need to be recorded, because this one-time initialization is all that's required.
+             * The RESET control, if any, doesn't need to be recorded, because this one-time initialization is all
+             * that's required.
              */
             if (control) {
                 control.onclick = function onReset() {
                     /*
-                     * If RESET is clicked when all coordinates are already at their reset values, then revert to our built-in defaults.
+                     * If RESET is clicked when all coordinates are already at their reset values, then revert to our
+                     * built-in defaults.
                      */
                     mandelbot.aPrevious = [];
                     mandelbot.updatePrevious();
@@ -219,11 +221,12 @@ class Mandelbot {
                 this.contextView = this.canvasView.getContext("2d");
                 if (this.contextView) {
                     /*
-                     * TODO: Verify that this property really only has much (if any) effect when the View context has HIGHER
-                     * resolution than the Grid context, and that it only makes sense on the View context; also, I'm not sure
-                     * how many browsers really support it, and which browsers require special prefixes on the property (eg,
-                     * 'mozImageSmoothingEnabled', 'webkitImageSmoothingEnabled', etc).  Finally, if it's possible that some users
-                     * really WANT to produce low-res "fuzzy" images, then consider adding a parameter to control this setting.
+                     * TODO: Verify that this property really only has much (if any) effect when the View context
+                     * has HIGHER resolution than the Grid context, and that it only makes sense on the View context;
+                     * also, I'm not sure how many browsers really support it, and which browsers require special
+                     * prefixes on the property (eg, 'mozImageSmoothingEnabled', 'webkitImageSmoothingEnabled', etc).
+                     * Finally, if it's possible that some users really WANT to produce low-res "fuzzy" images, then
+                     * consider adding a parameter to control this setting.
                      *
                      * Refer to: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled
                      */
@@ -862,7 +865,8 @@ class Mandelbot {
          * um, addition.
          *
          * TODO: I need to find something conclusive regarding whether the "escape" criteria is >= 2 or > 2.  The code
-         * assumes the former, in part because this is what the original Scientific American article from August 1985 said:
+         * assumes the former, in part because this is what the original Scientific American article from August 1985
+         * said:
          *
          *      A straightforward result in the theory of complex-number iterations guarantees that the iterations
          *      will drive z to infinity if and only if at some stage z reaches a size of 2 or greater.
@@ -1115,7 +1119,7 @@ function newMandelbot(widthGrid, heightGrid, xCenter, yCenter, dxCenter, dyCente
 /**
  * addMandelbot(mandelbot)
  *
- * Adds the Mandelbot to the array of auto-updated Mandelbots.  newMandelbot() does this automatically, unless told otherwise.
+ * Adds the Mandelbot to the array of auto-updated Mandelbots.  newMandelbot() does this by default.
  *
  * @param {Mandelbot} mandelbot
  */
@@ -1128,7 +1132,8 @@ function addMandelbot(mandelbot)
 /**
  * updateMandelbots(fInit)
  *
- * setTimeout() handler for updating all Mandelbots.  addMandelbot() does this automatically to ensure an update has been scheduled.
+ * setTimeout() handler for updating all Mandelbots.  addMandelbot() does this automatically to ensure an update
+ * has been scheduled.
  *
  * @param {boolean} [fInit]
  */
@@ -1141,11 +1146,11 @@ function updateMandelbots(fInit)
             let mandelbot = activeMandelbots[iNextMandelbot];
             if (mandelbot.updateGrid()) {
                 /*
-                 * Since the grid was updated, we set the fInit flag to ensure that at least one more updateMandelbots()
-                 * call will be scheduled via setTimeout().  Even though it's possible that the grid was FULLY updated,
-                 * I'm happy to wait until the next updateMandelbots() call to find that out; updateGrid() will then report
-                 * there was nothing to update, and once ALL the grids on the page report the same thing, we'll stop
-                 * scheduling these calls.
+                 * Since the grid was updated, we set the fInit flag to ensure that at least one more
+                 * updateMandelbots() call will be scheduled via setTimeout().  Even though it's possible
+                 * that the grid was FULLY updated, I'm happy to wait until the next updateMandelbots()
+                 * call to find that out; updateGrid() will then report there was nothing to update, and
+                 * once ALL the grids on the page report the same thing, we'll stop scheduling these calls.
                  */
                 fInit = true;
             }
@@ -1153,7 +1158,7 @@ function updateMandelbots(fInit)
         }
     }
     /*
-     * Schedule a new call for immediate execution if there were any updates (otherwise, we assume all our work is done).
+     * Schedule a new call for immediate execution if there were any updates (otherwise, we assume our work is done).
      */
     if (fInit && !idTimeout) {
         idTimeout = setTimeout(updateMandelbots, 0);
