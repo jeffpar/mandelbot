@@ -12,10 +12,14 @@ mandelbots:
     idPrevious: prev1
 ---
 
-Welcome to Mandelbot
---------------------
+Welcome to the Mandelbot Project
+--------------------------------
 
 This page demonstrates a single Mandelbot.  Using a mouse or touch device, you can drag a rectangle around a region,
-and then click or tap inside the rectangle to begin drawing the new region. 
+and then click or tap inside the rectangle to begin drawing the new region.  Click or tap outside the rectangle to cancel.
+
+You can also re-center an image by clicking/tapping on the point to use as the new center.
+
+The `Reset` and `Previous` controls below the image can be used to start over or recalculate a previous image. 
 
 {% include mandelbot.html id="mandelbot1" %}
