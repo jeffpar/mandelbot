@@ -34,6 +34,9 @@ let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibra
 /**
  * @class Mandelbot
  * @unrestricted
+ * @property {string|undefined} idView
+ * @property {Object} hashTable
+ * @property {boolean} bigNumbers
  * @property {number} widthView
  * @property {number} heightView
  * @property {number} widthGrid
@@ -42,17 +45,16 @@ let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibra
  * @property {number|BigNumber} yCenter
  * @property {number|BigNumber} xDistance
  * @property {number|BigNumber} yDistance
- * @property {boolean} bigNumbers
  * @property {number} colorScheme
- * @property {number} nMaxIterations
- * @property {Element|null} controlStatus
- * @property {string} messageStatus
- * @property {Array.<number>} aResults
  * @property {HTMLCanvasElement} canvasView
  * @property {CanvasRenderingContext2D} contextView
- * @property {ImageData} imageGrid
+ * @property {Element|undefined} controlStatus
+ * @property {number} nMaxIterations
+ * @property {Array.<number>} aResults
+ * @property {Element|undefined} controlSelect
  * @property {HTMLCanvasElement} canvasGrid
  * @property {CanvasRenderingContext2D} contextGrid
+ * @property {ImageData} imageGrid
  * @property {number} colUpdate
  * @property {number} rowUpdate
  * @property {number|BigNumber} xLeft
@@ -96,24 +98,12 @@ class Mandelbot {
      */
     constructor(widthGrid = 0, heightGrid = 0, xCenter = -0.5, yCenter = 0, xDistance = 1.5, yDistance = 1.5, bigNumbers = false, colorScheme, idView, idStatus)
     {
-        if (!bigNumbers) {
-            /*
-             * Since the x,y parameters are allowed to be numbers OR strings, and since BigNumber support was
-             * not requested, we coerce those parameters to numbers using the unary "plus" operator; if they are
-             * are already numeric values, the operator has no effect, and if any value was negative, don't worry,
-             * it will remain negative.
-             */
-            this.xCenter = +xCenter;
-            this.yCenter = +yCenter;
-            this.xDistance = Math.abs(+xDistance);
-            this.yDistance = Math.abs(+yDistance);
-        } else {
-            this.xCenter = new BigNumber(xCenter);
-            this.yCenter = new BigNumber(yCenter);
-            this.xDistance = new BigNumber(xDistance).abs();
-            this.yDistance = new BigNumber(yDistance).abs();
-        }
+        this.getURLHash(idView);
         this.bigNumbers = bigNumbers;
+        this.xCenter = this.getURLValue(Mandelbot.KEYS.XCENTER, xCenter);
+        this.yCenter = this.getURLValue(Mandelbot.KEYS.YCENTER, yCenter);
+        this.xDistance = this.getURLValue(Mandelbot.KEYS.XDISTANCE, xDistance, true);
+        this.yDistance = this.getURLValue(Mandelbot.KEYS.YDISTANCE, yDistance, true);
         this.colorScheme = (colorScheme !== undefined? colorScheme : Mandelbot.COLORSCHEME.GRAY);
         this.aResults = [0, 0, 0, 0];
         try {
@@ -122,15 +112,13 @@ class Mandelbot {
              * the createImageData() call in initGrid() to barf.  So rather than trying to imagine every
              * possible failure here, let's just catch and display any errors.
              */
-            this.controlStatus = idStatus? document.getElementById(idStatus) : null;
-            this.messageStatus = "";
+            this.controlStatus = idStatus? document.getElementById(idStatus) : undefined;
             if (this.initView(idView) && this.initGrid(widthGrid || this.widthView, heightGrid || this.heightView)) {
                 this.prepGrid();
             }
         } catch(err) {
-            this.messageStatus = err.message;
+            this.updateStatus(err.message);
         }
-        this.updateStatus();
     }
 
     /**
@@ -144,6 +132,7 @@ class Mandelbot {
      */
     initView(idView)
     {
+        this.idView = idView;
         this.widthView = this.heightView = 0;
         if (idView) {
             this.canvasView = /** @type {HTMLCanvasElement} */ (document.getElementById(idView));
@@ -166,7 +155,7 @@ class Mandelbot {
                     return true;
                 }
             }
-            this.messageStatus = "Missing view canvas";
+            this.updateStatus("Missing view canvas");
             return false;
         }
         return true;
@@ -195,7 +184,7 @@ class Mandelbot {
                 }
             }
         }
-        this.messageStatus = "Unable to create grid canvas";
+        this.updateStatus("Unable to create grid canvas");
         return false;
     }
 
@@ -207,9 +196,9 @@ class Mandelbot {
      */
     initSelect(control)
     {
-        let mandelbot = this;
-
         if (!this.controlSelect) {
+
+            let mandelbot = this;
 
             this.controlSelect = control;
 
@@ -219,6 +208,7 @@ class Mandelbot {
              * reset to -1 when movement has ended (eg, 'touchend' or 'mouseup').
              */
             this.colStart = this.rowStart = -1;
+            this.msStart = 0;
 
             /*
              * A selection exists IFF colSelect and rowSelect are positive; widthSelect and heightSelect
@@ -236,33 +226,27 @@ class Mandelbot {
 
             control.addEventListener(
                 'touchstart',
-                function onTouchStart(event) { mandelbot.processSelectEvent(event, true); },
-                false                   // we'll specify false for the 'useCapture' parameter for now...
+                function onTouchStart(event) { mandelbot.processSelectEvent(event, true); }
             );
             control.addEventListener(
                 'touchmove',
-                function onTouchMove(event) { mandelbot.processSelectEvent(event); },
-                true
+                function onTouchMove(event) { mandelbot.processSelectEvent(event); }
             );
             control.addEventListener(
                 'touchend',
-                function onTouchEnd(event) { mandelbot.processSelectEvent(event, false); },
-                false                   // we'll specify false for the 'useCapture' parameter for now...
+                function onTouchEnd(event) { mandelbot.processSelectEvent(event, false); }
             );
             control.addEventListener(
                 'mousedown',
-                function onMouseDown(event) { mandelbot.processSelectEvent(event, true); },
-                false                   // we'll specify false for the 'useCapture' parameter for now...
+                function onMouseDown(event) { mandelbot.processSelectEvent(event, true); }
             );
             control.addEventListener(
                 'mousemove',
-                function onMouseMove(event) { if (mandelbot.colStart >= 0) mandelbot.processSelectEvent(event); },
-                true
+                function onMouseMove(event) { if (mandelbot.colStart >= 0) mandelbot.processSelectEvent(event); }
             );
             control.addEventListener(
                 'mouseup',
-                function onMouseUp(event) { mandelbot.processSelectEvent(event, false); },
-                false                   // we'll specify false for the 'useCapture' parameter for now...
+                function onMouseUp(event) { mandelbot.processSelectEvent(event, false); }
             );
         }
     }
@@ -332,58 +316,89 @@ class Mandelbot {
         if (fStart) {
             this.colStart = colGrid;
             this.rowStart = rowGrid;
+            this.msStart = Date.now();
+        }
+        else if (fStart !== false) {
+            this.colSelect = this.colStart;
+            this.rowSelect = this.rowStart;
+            this.widthSelect = colGrid - this.colSelect;
+            this.heightSelect = rowGrid - this.rowSelect;
+            if (!this.widthSelect || !this.heightSelect) {
+                this.widthSelect = this.heightSelect = 0;
+            } else {
+                let aspectGrid = Math.abs(this.widthGrid / this.heightGrid);
+                let aspectSelect = Math.abs(this.widthSelect / this.heightSelect);
+                if (aspectSelect != aspectGrid) {
+                    let widthSelect = Math.abs((this.widthGrid * this.heightSelect) / this.heightGrid);
+                    this.widthSelect = (this.widthSelect < 0)? -widthSelect : widthSelect;
+                }
+            }
         }
         else {
-            if (fStart === false) {
-                /*
-                 * If a simple 'click' or 'tap' occurred, then the following condition will be true (ie, the current
-                 * grid position will match the starting grid position).  We only care about this case to determine if
-                 * the user clicked or tapped inside or outside the selection rectangle, if any.
-                 *
-                 * Yes, this condition will ALSO be true if the user happened to press somewhere, move around and back
-                 * to the starting point, and then release, but in that case, the selection rectangle will have zero
-                 * width and height (which we check for as well).
-                 */
-                if (colGrid == this.colStart && rowGrid == this.rowStart) {
-                    if (this.widthSelect && this.heightSelect) {
-                        let colBegin = this.colSelect;
-                        let rowBegin = this.rowSelect;
-                        let colEnd = this.colSelect + this.widthSelect;
-                        let rowEnd = this.rowSelect + this.heightSelect;
-                        if (colEnd < colBegin) {
-                            colBegin = colEnd;
-                            colEnd = this.colSelect;
-                        }
-                        if (rowEnd < rowBegin) {
-                            rowBegin = rowEnd;
-                            rowEnd = this.rowSelect;
-                        }
-                        if (colGrid >= colBegin && colGrid <= colEnd && rowGrid >= rowBegin && rowGrid <= rowEnd) {
-                            if (!this.bigNumbers) {
-                                this.xDistance = ((colEnd - colBegin) * this.xInc) / 2;
-                                this.yDistance = ((rowEnd - rowBegin) * this.yInc) / 2;
-                                this.xCenter = this.xLeft + (colBegin * this.xInc) + this.xDistance;
-                                this.yCenter = this.yTop  - (rowBegin * this.yInc) - this.yDistance;
-                            } else {
-                                // this.xCenter = new BigNumber(xCenter);
-                                // this.yCenter = new BigNumber(yCenter);
-                                // this.xDistance = new BigNumber(xDistance).abs();
-                                // this.yDistance = new BigNumber(yDistance).abs();
-                            }
-                            this.prepGrid();
-                            this.updateStatus();
-                            updateMandelbots(true);
-                        }
+            /*
+             * If a simple click-and-release or tap occurred, the following conditions should be true (the current
+             * grid position will match the starting grid position and/or the click-to-release time will be very short).
+             *
+             * We only care about this case to determine if the user clicked or tapped inside or outside the selection
+             * rectangle, if any.  Clicking/tapping inside the selection triggers a reposition and recalculate.
+             */
+            let msRelease = Date.now() - this.msStart;
+            if (colGrid == this.colStart && rowGrid == this.rowStart || msRelease < 100) {
+                if (this.widthSelect && this.heightSelect) {
+                    let colBeg = this.colSelect;
+                    let rowBeg = this.rowSelect;
+                    let colEnd = this.colSelect + this.widthSelect;
+                    let rowEnd = this.rowSelect + this.heightSelect;
+                    if (colEnd < 0) {
+                        colEnd = 0;
+                    } else if (colEnd > this.widthGrid) {
+                        colEnd = this.widthGrid;
                     }
-                    this.colSelect = this.rowSelect = -1;
+                    if (rowEnd < 0) {
+                        rowEnd = 0;
+                    } else if (rowEnd > this.heightGrid) {
+                        rowEnd = this.heightGrid;
+                    }
+                    if (colEnd < colBeg) {
+                        colBeg = colEnd;
+                        colEnd = this.colSelect;
+                    }
+                    if (rowEnd < rowBeg) {
+                        rowBeg = rowEnd;
+                        rowEnd = this.rowSelect;
+                    }
+                    if (colGrid >= colBeg && colGrid <= colEnd && rowGrid >= rowBeg && rowGrid <= rowEnd) {
+                        if (!this.bigNumbers) {
+                            this.xDistance = ((colEnd - colBeg) * this.xInc) / 2;
+                            this.yDistance = ((rowEnd - rowBeg) * this.yInc) / 2;
+                            this.xCenter = this.xLeft + (colBeg * this.xInc) + this.xDistance;
+                            this.yCenter = this.yTop  - (rowBeg * this.yInc) - this.yDistance;
+                        } else {
+                            // this.xCenter = new BigNumber(xCenter);
+                            // this.yCenter = new BigNumber(yCenter);
+                            // this.xDistance = new BigNumber(xDistance).abs();
+                            // this.yDistance = new BigNumber(yDistance).abs();
+                        }
+                        this.prepGrid(true);
+                    }
+                    this.widthSelect = this.heightSelect = 0;
                 }
-                this.colStart = this.rowStart = -1;
-            } else {
-                this.colSelect = this.colStart;
-                this.rowSelect = this.rowStart;
-                this.widthSelect = colGrid - this.colSelect;
-                this.heightSelect = rowGrid - this.rowSelect;
+                else if (!this.widthSelect && !this.heightSelect) {
+                    if (!this.bigNumbers) {
+                        this.xCenter = this.xLeft + (colGrid * this.xInc);
+                        this.yCenter = this.yTop  - (rowGrid * this.yInc);
+                    } else {
+                        // this.xCenter = new BigNumber(xCenter);
+                        // this.yCenter = new BigNumber(yCenter);
+                        // this.xDistance = new BigNumber(xDistance).abs();
+                        // this.yDistance = new BigNumber(yDistance).abs();
+                    }
+                    this.prepGrid(true);
+                }
+                this.colSelect = this.rowSelect = -1;
             }
+            this.colStart = this.rowStart = -1;
+            this.msStart = 0;
         }
 
         this.showSelection();
@@ -417,18 +432,17 @@ class Mandelbot {
             this.contextGrid.lineWidth = 1;
             this.contextGrid.strokeStyle = "#00FF00";
             this.contextGrid.strokeRect(this.colSelect, this.rowSelect, this.widthSelect, this.heightSelect);
-            /*
-             * In theory, showSelection() will never be called unless a View canvas was successfully initialized,
-             * but just in case....
-             */
-            if (this.contextView) {
-                this.contextView.drawImage(this.canvasGrid, 0, 0, this.widthGrid, this.heightGrid, 0, 0, this.widthView, this.heightView);
-            }
+        }
+        /*
+         * We want to refresh the view regardless, in case hideSelection() removed a previously visible selection.
+         */
+        if (this.contextView) {
+            this.contextView.drawImage(this.canvasGrid, 0, 0, this.widthGrid, this.heightGrid, 0, 0, this.widthView, this.heightView);
         }
     }
 
     /**
-     * prepGrid()
+     * prepGrid(fRecalc)
      *
      * Resets colUpdate and rowUpdate (the next position on the grid to be updated) and calculates xUpdate and
      * yUpdate (the x and y coordinates corresponding to that grid position).
@@ -437,8 +451,9 @@ class Mandelbot {
      * the left-most and top-most x,y values, and xInc and yInc are the appropriate x,y increments.
      *
      * @this {Mandelbot}
+     * @param {boolean} [fRecalc]
      */
-    prepGrid()
+    prepGrid(fRecalc)
     {
         this.colUpdate = this.rowUpdate = 0;
         if (!this.bigNumbers) {
@@ -457,7 +472,11 @@ class Mandelbot {
             this.yUpdate = this.yTop.plus(0);
         }
         this.nMaxIterations = Mandelbot.getMaxIterations(this.xDistance, this.yDistance);
-        this.messageStatus = "X: " + this.xCenter + " (+/-" + this.xDistance + ") Y: " + this.yCenter + " (+/-" + this.yDistance + ") Iterations: " + this.nMaxIterations + (this.bigNumbers? " (BigNumbers)" : "");
+        this.updateStatus("X: " + this.xCenter + " (+/-" + this.xDistance + ") Y: " + this.yCenter + " (+/-" + this.yDistance + ") Iterations: " + this.nMaxIterations + (this.bigNumbers? " (BigNumbers)" : ""));
+        if (fRecalc) {
+            this.updateHash();
+            updateMandelbots(true);
+        }
     }
 
     /**
@@ -512,19 +531,93 @@ class Mandelbot {
     }
 
     /**
-     * updateStatus()
+     * getURLHash(idView)
+     *
+     * If the hash portion of the URL contains values for the specified idView, store those values in hashTable.
+     *
+     * @this {Mandelbot}
+     * @param {string|undefined} idView
+     */
+    getURLHash(idView)
+    {
+        this.hashTable = {};
+        if (idView) {
+            let hashTable = {};
+            let match, hash = location.hash;
+            let reKeyPair = /([^#&=]+)=([^&]*)/g;
+            while (match = reKeyPair.exec(hash)) {
+                hashTable[match[1]] = match[2];
+            }
+            if (hashTable[Mandelbot.KEYS.ID] == idView) {
+                this.hashTable = hashTable;
+            }
+        }
+    }
+
+    /**
+     * getURLValue(key, init, abs)
+     *
+     * If the specified value has an override in hashTable, use it; otherwise, use the given initial value.
+     *
+     * @this {Mandelbot}
+     * @param {string} key
+     * @param {number|string} init
+     * @param {boolean} [abs] (true to return absolute value)
+     * @return {number|BigNumber}
+     */
+    getURLValue(key, init, abs)
+    {
+        let value;
+        init = this.hashTable[key] || init;
+        if (this.bigNumbers) {
+            value = new BigNumber(init);
+            if (abs) value = value.abs();
+        } else {
+            /*
+             * Since the x,y parameters are allowed to be numbers OR strings, and since BigNumber support was
+             * not requested, we coerce those parameters to numbers using the unary "plus" operator; if they are
+             * are already numeric values, the operator has no effect, and if any value was negative, don't worry,
+             * it will remain negative.
+             */
+            value = +init;
+            if (abs) value = Math.abs(value);
+        }
+        return value;
+    }
+
+    /**
+     * updateHash()
+     *
+     * If this Mandelbot has an idView, update the hash portion of the URL with new values.
      *
      * @this {Mandelbot}
      */
-    updateStatus()
+    updateHash()
     {
-        if (this.messageStatus) {
+        if (this.idView) {
+            let hash = Mandelbot.KEYS.ID + '=' + this.idView;
+            hash += '&' + Mandelbot.KEYS.XCENTER   + '=' + this.xCenter;
+            hash += '&' + Mandelbot.KEYS.YCENTER   + '=' + this.yCenter;
+            hash += '&' + Mandelbot.KEYS.XDISTANCE + '=' + this.xDistance;
+            hash += '&' + Mandelbot.KEYS.YDISTANCE + '=' + this.yDistance;
+            location.hash = hash;
+        }
+    }
+
+    /**
+     * updateStatus(sMessage)
+     *
+     * @this {Mandelbot}
+     * @param {string} [sMessage]
+     */
+    updateStatus(sMessage)
+    {
+        if (sMessage) {
             if (!this.controlStatus) {
-                if (DEBUG) console.log(this.messageStatus);
+                if (DEBUG) console.log(sMessage);
             } else {
-                this.controlStatus.textContent = this.messageStatus;
+                this.controlStatus.textContent = sMessage;
             }
-            this.messageStatus = "";
         }
     }
 
@@ -850,6 +943,14 @@ class Mandelbot {
         return 5 + n - Mandelbot.LOG_HALFBASE - Math.log(Math.log(aResults[2] + aResults[3])) * Mandelbot.LOG_BASE;
     }
 }
+
+Mandelbot.KEYS = {
+    ID:         "id",
+    XCENTER:    "xCenter",
+    YCENTER:    "yCenter",
+    XDISTANCE:  "xDistance",
+    YDISTANCE:  "yDistance"
+};
 
 Mandelbot.COLORSCHEME = {
     BW:     0,  // B&W
