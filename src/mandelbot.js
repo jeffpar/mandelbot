@@ -164,7 +164,7 @@ class Mandelbot {
             if (control) {
                 control.onclick = function onReset() {
                     /*
-                     * If RESET is clicked after all coordinates have already returned to their reset values,
+                     * If RESET is clicked after all coordinates have already returned to the page's reset values,
                      * then revert to the built-in defaults (think of it as a hard reset, as opposed to a soft reset).
                      */
                     mandelbot.aPrevious = [];
@@ -405,7 +405,7 @@ class Mandelbot {
             this.colStart = colGrid;
             this.rowStart = rowGrid;
             this.msStart = Date.now();
-            if (DEBUG) this.aEvents.push("down event: x=" + this.colStart + " y=" + this.rowStart + " (" + this.msStart + "ms)");
+            if (DEBUG) this.aEvents.push("down event: x=" + this.colStart + " y=" + this.rowStart);
         }
         else if (fStart !== false) {
             this.colSelect = this.colStart;
@@ -534,6 +534,11 @@ class Mandelbot {
      * We also calculate several values that are constant for the next updateGrid() operation: xLeft and yTop are
      * the left-most and top-most x,y values, and xInc and yInc are the appropriate x,y increments.
      *
+     * fUpdate defaults to true; it must be explicitly set to false to prevent the updateHash() and updateMandelbots()
+     * calls, which only the constructor does, and it must be explicitly set to true for updateHash() to also update
+     * the stack of hashes in the aPrevious array; otherwise, it's assumed that the caller just popped (or reset) the
+     * array, so we don't want updateHash() interfering.
+     *
      * @this {Mandelbot}
      * @param {number|BigNumber} xCenter
      * @param {number|BigNumber} yCenter
@@ -544,9 +549,8 @@ class Mandelbot {
     prepGrid(xCenter, yCenter, dxCenter, dyCenter, fUpdate)
     {
         if (DEBUG) {
-            for (let i = 0; i < this.aEvents.length; i++) {
-                console.log(this.aEvents[i]);
-            }
+            console.log("prepGrid()");
+            for (let i = 0; i < this.aEvents.length; i++) console.log(this.aEvents[i]);
             this.aEvents = [];
         }
         if (!this.bigNumbers) {
@@ -1189,7 +1193,7 @@ function addMandelbot(mandelbot)
  * setTimeout() handler for updating all Mandelbots.  addMandelbot() does this automatically to ensure an update
  * has been scheduled.
  *
- * @param {boolean} [fInit]
+ * @param {boolean} [fInit] (true to merely schedule an update; otherwise, perform an update and then schedule another)
  */
 function updateMandelbots(fInit)
 {
