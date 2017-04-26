@@ -6,9 +6,9 @@ A Mandelbot is a Mandelbrot image generator written in JavaScript.  The goals in
 - Make Mandelbots easy to use and configure (see [Configuration](#configuration))
 - Support multiple Mandelbots per page (see [Demo](http://mandelbot.net/demo/two/))
 - Build it using clear, well-documented code (see [mandelbot.js](src/mandelbot.js))
-- Experiment with new technologies (eg, the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
+- Experiment with third-party libraries (eg, the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
 	
-However, this is a work-in-progress, so the Mandelbot feature set is limited.  I started the project as a diversion
+However, this is a work-in-progress, so the Mandelbot feature set is small.  I started the project as a diversion
 and an excuse to learn some new things, so bear with me.
 
 For history buffs, I've [archived](src/old/) an assortment of old related Pascal, C, and 8088 assembly-language code
