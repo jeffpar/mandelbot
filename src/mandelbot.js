@@ -566,7 +566,7 @@ class Mandelbot {
         }
         this.colUpdate = this.rowUpdate = 0;
         this.nMaxIterations = Mandelbot.getMaxIterations(this.dxCenter, this.dyCenter);
-        this.updateStatus("X: " + this.xCenter + " (+/-" + this.dxCenter + ") Y: " + this.yCenter + " (+/-" + this.dyCenter + ") Iterations: " + this.nMaxIterations + (this.bigNumbers? " (BigNumbers)" : ""));
+        this.updateStatus("X: " + this.xCenter + ", Y: " + this.yCenter + ", D: +/-" + this.dxCenter + ", Max Iterations: " + this.nMaxIterations + (this.bigNumbers? " (BigNumbers)" : ""));
         if (fUpdate !== false) {
             this.updateHash(fUpdate);
             updateMandelbots(true);
