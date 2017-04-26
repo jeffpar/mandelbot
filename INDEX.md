@@ -1,7 +1,7 @@
 ---
 permalink: /
 mandelbots:
-  - id: mandelbot1
+  - id: default
     widthView: 1024
     heightView: 1024
     widthStyle: 100%
@@ -23,4 +23,4 @@ to begin drawing the new region.  Click or tap outside the rectangle to cancel.
 Re-center an image by clicking/tapping on the point to use as the new center, and use the `Reset` and `Previous` buttons
 below the image to either start over or recalculate a previous image. 
 
-{% include mandelbot.html id="mandelbot1" %}
+{% include mandelbot.html id="default" %}

@@ -27,12 +27,12 @@
 
       <p>This page was created for debugging with the WebStorm IDE, which provides its own web server.</p>
 
-      <canvas class="mandelbot-view" id="mandelbot1" width="1024" height="1024" style="width: 100%; height: auto"></canvas>
+      <canvas class="mandelbot-view" id="default" width="1024" height="1024" style="width: 100%; height: auto"></canvas>
       <p class="mandelbot-status" id="status1">No status</p>
       <p><button id="reset1" type="button">Reset</button>
         <button id="prev1" type="button" disabled="disabled">Previous</button>
         <script type="text/javascript">
-          var mandelbot = newMandelbot(1024,1024,undefined,undefined,undefined,undefined,false,Mandelbot.COLOR_SCHEME.HSV3,"mandelbot1","status1");
+          var mandelbot = newMandelbot(1024,1024,undefined,undefined,undefined,undefined,false,Mandelbot.COLOR_SCHEME.HSV3,"default","status1");
           if (mandelbot) {
             mandelbot.addControl(Mandelbot.CONTROL_STATUS, "status1");
             mandelbot.addControl(Mandelbot.CONTROL_RESET, "reset1");

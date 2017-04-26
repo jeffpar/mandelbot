@@ -290,8 +290,6 @@ class Mandelbot {
              * colStart and rowStart record the last 'touchstart' or 'mousedown' position on the grid;
              * they will be propagated to colSelect and rowSelect if/when movement is detected, and they
              * will be reset to -1 when movement has ended (eg, 'touchend' or 'mouseup').
-             *
-             * In other words, negative values indicate no pending selection or action.
              */
             this.colStart = this.rowStart = -1;
             this.msStart = 0;
@@ -324,15 +322,15 @@ class Mandelbot {
             );
             control.addEventListener(
                 'mousedown',
-                function onMouseDown(event) { mandelbot.processSelectEvent(event, true); }
+                function onMouseDown(event) { if (!event.button) mandelbot.processSelectEvent(event, true); }
             );
             control.addEventListener(
                 'mousemove',
-                function onMouseMove(event) { if (mandelbot.colStart >= 0) mandelbot.processSelectEvent(event); }
+                function onMouseMove(event) { if (event.buttons & 0x1) mandelbot.processSelectEvent(event); }
             );
             control.addEventListener(
                 'mouseup',
-                function onMouseUp(event) { mandelbot.processSelectEvent(event, false); }
+                function onMouseUp(event) { if (!event.button) mandelbot.processSelectEvent(event, false); }
             );
             control.addEventListener(
                 'mouseout',
@@ -417,8 +415,8 @@ class Mandelbot {
         else if (fStart !== false) {
             /*
              * Case 2 of 3: a 'move' event.  In the case of a mouse, move events can happen all the time,
-             * whether a button is 'down' or not, but our event listener automatically suppresses any moves
-             * that occur while colStart is negative, so if we're here, something should still be 'down'.
+             * whether a button is 'down' or not, but our event listener automatically suppresses all moves
+             * except those where the left button is down.
              */
             this.colSelect = this.colStart;
             this.rowSelect = this.rowStart;

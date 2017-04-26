@@ -84,13 +84,13 @@ Without *therubyracer* added to the Gemfile, Jekyll would fail with the error "C
 Configuration
 -------------
 
-Mandelbots are added to [Jekyll](https://jekyllrb.com/) documents on the [Mandelbot website](http://mandelbot.net)
-using the [Mandelbot](_includes/mandelbot.html) include file:
+Mandelbots are added to pages on the [Jekyll](https://jekyllrb.com/)-based [Mandelbot website](http://mandelbot.net)
+using the [mandelbot.html](_includes/mandelbot.html) include file:
 
 	{% include mandelbot.html id="mandelbot1" widthView="200" heightView="200" %}
 	
-For documents containing multiple Mandelbots, it may be more convenient to define each Mandelbot's configuration parameters
-at the top of the document, inside the document's [Front Matter](https://jekyllrb.com/docs/frontmatter/):
+For pages containing multiple Mandelbots, it may be more convenient to define each Mandelbot's configuration parameters
+at the top of the page, inside the page's [Jekyll Front Matter](https://jekyllrb.com/docs/frontmatter/):
 
 	---
 	...
@@ -101,11 +101,11 @@ at the top of the document, inside the document's [Front Matter](https://jekyllr
 	    ...
 	---
 
-Then each Mandelbot can be added with just an *id* parameter:
+These "predefined" Mandelbots can then be added anywhere on the page, using just the *id* parameter:
 
 	{% include mandelbot.html id="mandelbot1" %}
 
-Examples of both inline and predefined Mandelbots can be found on the project's [Two Mandelbots](demo/two/INDEX.md) page.
+Examples of both "inline" and "predefined" Mandelbots can be found on the [Two Mandelbots](demo/two/INDEX.md) demo page.
 
 Mandelbots support the following properties:
 
@@ -123,6 +123,8 @@ Mandelbots support the following properties:
 - *bigNumbers*: true to use BigNumbers for all floating-point calculations (default: false)
 - *colorScheme*: one of the Mandelbot.COLOR_SCHEME values (default: GRAY)
 - *idStatus*: a unique identifier for a text-based status control; if omitted, no control is generated
+- *idReset*: a unique identifier for a `Reset` button control; if omitted, no control is generated
+- *idPrevious*: a unique identifier for a `Previous` button control; if omitted, no control is generated
 
 *widthGrid* and *heightGrid* determine the resolution of the image to be calculated, while *widthView* and *heightView*
 determine the resolution used to display that image on the page.  They must be specified as numbers, and the units are
@@ -141,6 +143,18 @@ also specify the units (eg, *px*).  For example, a *widthStyle* of *200px* enfor
 
 Generally, the only reason to alter the style settings is to make the view canvas responsive (ie, to fill the page as
 the width of the page changes).  This is commonly done by setting *widthStyle* to *100%*.
+
+Some Mandelbot IDs are associated with special styles; see [style.scss](/assets/css/style.scss).  For example,
+the Mandelbot on the [mandelbot.net](http://mandelbot.net/) home page uses ID "default", which triggers the following:
+
+	#default {
+	  background-color: #ffffff;
+	  background-image: url(/assets/img/default.png);
+	  background-size: 100% auto;
+	}
+
+This is done so that when other sites produce a thumbnail of the page, they will (hopefully) pick up the
+[default image](/assets/img/default.png) that Mandelbot initially produces.
 
 Modification
 ------------
