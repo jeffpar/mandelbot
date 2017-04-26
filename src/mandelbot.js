@@ -984,7 +984,7 @@ class Mandelbot {
      * getColor(colorScheme, aResults)
      *
      * Adapted from code in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
-     * Copyright 2012 by Christian Stigen Larsen.
+     * Copyright 2012 Christian Stigen Larsen.
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
      * @param {number} colorScheme
@@ -1031,7 +1031,7 @@ class Mandelbot {
      * getMaxIterations(dxCenter, dyCenter)
      *
      * Adapted from code in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
-     * Copyright 2012 by Christian Stigen Larsen.
+     * Copyright 2012 Christian Stigen Larsen.
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
      * @param {number|BigNumber} dxCenter
@@ -1053,7 +1053,7 @@ class Mandelbot {
      * getRGBFromHSV(h, s, v)
      *
      * Adapted from hsv_to_rgb() in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
-     * Copyright 2012 by Christian Stigen Larsen.
+     * Copyright 2012 Christian Stigen Larsen.
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
      * @param {number} h (0 to 360)
@@ -1096,7 +1096,7 @@ class Mandelbot {
      * getSmoothColor(aResults)
      *
      * Adapted from smoothColor() in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
-     * Copyright 2012 by Christian Stigen Larsen.
+     * Copyright 2012 Christian Stigen Larsen.
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
      * @param {Array.<number>} aResults

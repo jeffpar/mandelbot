@@ -1,16 +1,8 @@
 ---
-permalink: /demo/two/
-mandelbots:
-  - id: mandelbot1
-    widthView: 400
-    heightView: 400
-    widthStyle: 48%
-    colorScheme: Mandelbot.COLOR_SCHEME.HSV1
+permalink: /demo/
 ---
 
-Two Mandelbots
---------------
+Mandelbot Demos
+---------------
 
-{% include mandelbot.html id="mandelbot1" %}
-
-{% include mandelbot.html id="mandelbot2" widthView="400" heightView="400" widthStyle="48%" colorScheme="Mandelbot.COLOR_SCHEME.HSV2" %}
+* [Two Mandelbots](two/)
