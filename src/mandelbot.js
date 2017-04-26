@@ -287,9 +287,11 @@ class Mandelbot {
             this.controlSelect = control;
 
             /*
-             * colStart and rowStart record the last 'touchstart' or 'mousedown' coordinates; they will
-             * be propagated to colSelect and rowSelect if/when movement is detected, and they will be
-             * reset to -1 when movement has ended (eg, 'touchend' or 'mouseup').
+             * colStart and rowStart record the last 'touchstart' or 'mousedown' position on the grid;
+             * they will be propagated to colSelect and rowSelect if/when movement is detected, and they
+             * will be reset to -1 when movement has ended (eg, 'touchend' or 'mouseup').
+             *
+             * In other words, negative values indicate no pending selection or action.
              */
             this.colStart = this.rowStart = -1;
             this.msStart = 0;
@@ -402,18 +404,27 @@ class Mandelbot {
         this.hideSelection();
 
         if (fStart) {
+            /*
+             * Case 1 of 3: a 'down' event.  All we do is record the grid position of that event,
+             * transitioning colStart and rowStart from negative to non-negative values (because grid
+             * positions cannot be negative).
+             */
             this.colStart = colGrid;
             this.rowStart = rowGrid;
             this.msStart = Date.now();
-            if (DEBUG) this.aEvents.push("down event: x=" + this.colStart + " y=" + this.rowStart);
+            if (DEBUG) this.aEvents.push("down event x,y=" + colGrid + "," + rowGrid);
         }
         else if (fStart !== false) {
+            /*
+             * Case 2 of 3: a 'move' event.  In the case of a mouse, move events can happen all the time,
+             * whether a button is 'down' or not, but our event listener automatically suppresses any moves
+             * that occur while colStart is negative, so if we're here, something should still be 'down'.
+             */
             this.colSelect = this.colStart;
             this.rowSelect = this.rowStart;
             this.widthSelect = colGrid - this.colSelect;
             this.heightSelect = rowGrid - this.rowSelect;
             if (!this.widthSelect || !this.heightSelect) {
-                if (DEBUG) this.aEvents.push("move event: cx=" + this.widthSelect + " cy=" + this.heightSelect + " (zero delta)");
                 this.widthSelect = this.heightSelect = 0;
             } else {
                 let aspectGrid = Math.abs(this.widthGrid / this.heightGrid);
@@ -422,30 +433,42 @@ class Mandelbot {
                     let widthSelect = Math.abs((this.widthGrid * this.heightSelect) / this.heightGrid);
                     this.widthSelect = (this.widthSelect < 0)? -widthSelect : widthSelect;
                 }
-                if (DEBUG) this.aEvents.push("move event: cx=" + this.widthSelect + " cy=" + this.heightSelect);
             }
+            if (DEBUG) this.aEvents.push("move event dx,dy=" + this.widthSelect + "," + this.heightSelect);
         }
         else {
             /*
-             * If a simple click-and-release or tap occurred, the following conditions should be true (the current
-             * grid position will match the starting grid position and/or the click-to-release time will be very short).
-             *
-             * We only care about this case to determine if the user clicked or tapped inside or outside the selection
-             * rectangle, if any.  Clicking/tapping inside the selection triggers a reposition and recalculate.
+             * Case 3 of 3: an 'up' event.
              */
             let msRelease = Date.now() - this.msStart;
 
-            if (DEBUG) this.aEvents.push("up event: x=" + this.colStart + " y=" + this.rowStart + " cx=" + this.widthSelect + " cy=" + this.heightSelect + " (" + msRelease + "ms delta)");
-
-            if (colGrid == this.colStart && rowGrid == this.rowStart || msRelease < 100) {
+            if (colGrid == this.colStart && rowGrid == this.rowStart && msRelease < 200) {
+                /*
+                 * Here, we assume a quick click-and-release or tap occurred; ie, the current grid position matched
+                 * the starting grid position and the click-to-release time was very short (less than 200ms).
+                 *
+                 * We only care about this case to determine if the user clicked or tapped inside or outside the
+                 * selection rectangle, if any.  Clicking/tapping inside a selection triggers a new range; outside
+                 * a selection triggers a new position.
+                 */
+                if (DEBUG) this.aEvents.push("click event x,y=" + colGrid + "," + rowGrid + " dx,dy=" + this.widthSelect + "," + this.heightSelect + " (" + msRelease + "ms delta)");
 
                 let xCenter, yCenter, dxCenter, dyCenter;
 
                 if (this.widthSelect && this.heightSelect) {
+                    /*
+                     * Since there's a selection rectangle, let's see if this 'up' event occurred inside
+                     * or outside the rectangle.
+                     */
                     let colBeg = this.colSelect;
                     let rowBeg = this.rowSelect;
                     let colEnd = this.colSelect + this.widthSelect;
                     let rowEnd = this.rowSelect + this.heightSelect;
+                    /*
+                     * Since the width and/or height can be negative (ie, if the selection extended above or
+                     * to the left of the starting position), swap the beginning and ending positions as needed to
+                     * simplify the range check below.
+                     */
                     if (colEnd < colBeg) {
                         colBeg = colEnd;
                         colEnd = this.colSelect;
@@ -455,6 +478,11 @@ class Mandelbot {
                         rowEnd = this.rowSelect;
                     }
                     if (colGrid >= colBeg && colGrid <= colEnd && rowGrid >= rowBeg && rowGrid <= rowEnd) {
+                        /*
+                         * The event occurred inside the selection, so calculate a new range.
+                         */
+                        if (DEBUG) this.aEvents.push("click inside " + colBeg + "," + rowBeg + "--" + colEnd + "," + rowEnd);
+
                         if (!this.bigNumbers) {
                             dxCenter = ((colEnd - colBeg) * this.xInc) / 2;
                             dyCenter = ((rowEnd - rowBeg) * this.yInc) / 2;
@@ -468,9 +496,18 @@ class Mandelbot {
                         }
                         this.prepGrid(xCenter, yCenter, dxCenter, dyCenter, true);
                     }
+                    else {
+                        if (DEBUG) this.aEvents.push("click outside " + colBeg + "," + rowBeg + "--" + colEnd + "," + rowEnd);
+                    }
+                    /*
+                     * In either case (inside or outside), the selection goes away.
+                     */
                     this.widthSelect = this.heightSelect = 0;
                 }
                 else if (!this.widthSelect && !this.heightSelect) {
+                    /*
+                     * Since there's NO selection rectangle, treat this as a re-positioning operation.
+                     */
                     if (!this.bigNumbers) {
                         xCenter = this.xLeft + (colGrid * this.xInc);
                         yCenter = this.yTop  - (rowGrid * this.yInc);
@@ -481,6 +518,12 @@ class Mandelbot {
                     this.prepGrid(xCenter, yCenter, this.dxCenter, this.dyCenter, true);
                 }
                 this.colSelect = this.rowSelect = -1;
+            }
+            else {
+                /*
+                 * Here, we assume the 'up' event simply signals the end of a selection operation; nothing to do (yet).
+                 */
+                if (DEBUG) this.aEvents.push("up event, selection x,y=" + this.colSelect + "," + this.rowSelect + " dx,dy=" + this.widthSelect + "," + this.heightSelect);
             }
             this.colStart = this.rowStart = -1;
             this.msStart = 0;
@@ -645,11 +688,11 @@ class Mandelbot {
      * getURLHash(idView, hash)
      *
      * If the hash portion of the URL contains values for idView, store those values in hashTable;
-     * if this is a "headless" Mandelbot (idView is not set), then the hash table will be empty.
+     * if this is a "headless" Mandelbot (idView is not set), then its hash table will be empty.
      *
      * TODO: We don't currently support encoding values for multiple Mandelbots in a single URL; all
-     * we do is verify that the current hash portion is for the current Mandelbot.  Only the Mandelbot
-     * that last updated the hash portion will be successful.
+     * we do is verify that the current URL hash is for the current Mandelbot.  Only the Mandelbot
+     * that last updated the URL via updateHash() will be successful.
      *
      * @this {Mandelbot}
      * @param {string|undefined} idView
