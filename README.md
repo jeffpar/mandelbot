@@ -5,15 +5,15 @@ A Mandelbot is a Mandelbrot image generator written in JavaScript.  The goals in
 
 - Make Mandelbots easy to use and configure (see [Configuration](#configuration))
 - Support multiple Mandelbots per page (see [Demo](http://mandelbot.net/demo/two/))
-- Build it using simple, easy-to-understand code (see [mandelbot.js](src/mandelbot.js))
+- Build it using clear, well-documented code (see [mandelbot.js](src/mandelbot.js))
 - Experiment with new technologies (eg, the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
 	
-However, this is a work-in-progress, so there isn't a lot to see here yet.  I started the project as a diversion
+However, this is a work-in-progress, so the Mandelbot feature set is limited.  I started the project as a diversion
 and an excuse to learn some new things, so bear with me.
 
-For history buffs, I've [archived](src/old/) an assortment of old related Pascal, C, and 8088 assembly-language code that
-I wrote over 30 years ago.  And the original [Scientific American](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf) article
-that helped spur a lot of early interest in the Mandelbrot Set (including my own) has been archived here as well.
+For history buffs, I've [archived](src/old/) an assortment of old related Pascal, C, and 8088 assembly-language code
+that I wrote over 30 years ago.  And the original [Scientific American](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
+article that helped spur a lot of early interest in the Mandelbrot Set (including my own) has been archived here as well.
 
 Installation
 ------------
@@ -125,21 +125,22 @@ Mandelbots support the following properties:
 - *idStatus*: a unique identifier for a text-based status control; if omitted, no control is generated
 
 *widthGrid* and *heightGrid* determine the resolution of the image to be calculated, while *widthView* and *heightView*
-determine the resolution used to display that image on the page.  They must be specified as numbers, and the units are pixels.
+determine the resolution used to display that image on the page.  They must be specified as numbers, and the units are
+pixels.
 
 The grid is essentially an internal canvas representing the Cartesian coordinate grid onto which all the complex numbers
 are plotted, after they have passed through the Mandelbrot set calculations.  The grid canvas is then drawn onto the view
-canvas.  By default, the canvas sizes are the same, but different values can be used to create different aspect ratios, scaling
-effects, etc.  The use of two canvases also provides automatic double-buffering, ensuring the smooth animation of current and
-future visual effects, such as the drawing of the selection rectangle.
+canvas.  By default, the canvas sizes are the same, but different values can be used to create different aspect ratios,
+scaling effects, etc.  The use of two canvases also provides automatic double-buffering, ensuring the smooth animation
+of current and future visual effects, such as the drawing of the selection rectangle.
 
-*widthStyle* and *heightStyle* control how your browser displays the view canvas; they are simply passed through to the browser
-as standard CSS *width* and *height* properties on the `canvas` element using the *style* attribute.  *auto* is the default for
-both properties.  You can also specify numbers of pixels, but since these are CSS properties, you must also specify the units
-(eg, *px*).  For example, a *widthStyle* of *200px* enforces a display width of 200 pixels.
+*widthStyle* and *heightStyle* control how your browser displays the view canvas; they are simply passed through to the
+browser as standard CSS *width* and *height* properties on the `canvas` element using the *style* attribute.  *auto* is
+the default for both properties.  You can also specify numbers of pixels, but since these are CSS properties, you must
+also specify the units (eg, *px*).  For example, a *widthStyle* of *200px* enforces a display width of 200 pixels.
 
-Generally, the only reason to alter the style settings is to make the view canvas responsive (ie, to fill the page as the width
-of the page changes).  This is commonly done by setting *widthStyle* to *100%*.
+Generally, the only reason to alter the style settings is to make the view canvas responsive (ie, to fill the page as
+the width of the page changes).  This is commonly done by setting *widthStyle* to *100%*.
 
 Modification
 ------------
@@ -151,10 +152,10 @@ JavaScript files via a [WebStorm](https://www.jetbrains.com/webstorm/) File Watc
 	--create_source_map $FileName$.map --output_wrapper "(function(){%output%})() //# sourceMappingURL=/src/$FileName$.map" \
 	--externs externs.js --js $FileName$ --js_output_file $FileNameWithoutExtension$.min.js
 
-Both the original and minified JavaScript [source files](/src/) are checked into the project, so this may be of little interest
-unless you plan to modify the JavaScript files, in which case you can install the Closure Compiler and other assorted development
-tools listed in [package.json](package.json) using the Node Package Manager (which, of course, requires that you have
-[Node](https://nodejs.org) installed):
+Both the original and minified JavaScript [source files](/src/) are checked into the project, so this may be of little
+interest unless you plan to modify the JavaScript files, in which case you can install the Closure Compiler and other
+assorted development tools listed in [package.json](package.json) using the Node Package Manager (which, of course,
+requires that you have [Node](https://nodejs.org) installed):
 
 	npm install
 
