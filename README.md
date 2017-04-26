@@ -4,7 +4,7 @@ Mandelbot
 A Mandelbot is a Mandelbrot image generator written in JavaScript.  The goals include:
 
 - Make Mandelbots easy to use and configure (see [Configuration](#configuration))
-- Support multiple Mandelbots per page (see [Demo](http://mandelbot.net))
+- Support multiple Mandelbots per page (see [Demo](http://mandelbot.net/demo/two/))
 - Build it using simple, easy-to-understand code (see [mandelbot.js](src/mandelbot.js))
 - Experiment with new technologies (eg, the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
 	
@@ -105,7 +105,7 @@ Then each Mandelbot can be added with just an *id* parameter:
 
 	{% include mandelbot.html id="mandelbot1" %}
 
-Examples of both inline and predefined Mandelbot can be found in the project's [home page](INDEX.md).
+Examples of both inline and predefined Mandelbots can be found on the project's [Two Mandelbots](demo/two/INDEX.md) page.
 
 Mandelbots support the following properties:
 
@@ -169,10 +169,10 @@ by A. K. Dewdney, pp. 16-24.
 Perspiration
 ------------
 
-Copyright © [Jeff Parsons](https://twitter.com/jeffpar) 2017.  This is an open source project with no formal license.
+Copyright © 2017 [Jeff Parsons](mailto:Jeff@pcjs.org).  This is an open source project with no formal license.
 All portions not licensed from other sources may be freely reused.  Any derivative work just needs to provide attribution
 along with the above copyright.
  
-Portions copyright 2012 by Christian Stigen Larsen and licensed under [Apache License](http://www.apache.org/licenses/LICENSE-2.0),
+Portions copyright 2012 Christian Stigen Larsen and licensed under [Apache License](http://www.apache.org/licenses/LICENSE-2.0),
 Version 2.0.  Those portions are clearly identified in [mandelbot.js](src/mandelbot.js) and must be accompanied by the same Apache
 License if they are redistributed.

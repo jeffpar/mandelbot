@@ -1,4 +1,5 @@
 {% comment %}
+
 Every Mandelbot must have a unique id:
 
   id (example: mandelbot1)
@@ -34,8 +35,8 @@ Any property definition in the include tag overrides that property definition in
 {% endfor %}
 
 {% assign idView = include.id | default: 'default' %}
-{% assign widthView = include.widthView | default: mandelbot.widthView | default: '0' %}
-{% assign heightView = include.heightView | default: mandelbot.heightView | default: '0' %}
+{% assign widthView = include.widthView | default: mandelbot.widthView | default: '200' %}
+{% assign heightView = include.heightView | default: mandelbot.heightView | default: '200' %}
 {% assign widthGrid = include.widthGrid | default: mandelbot.widthGrid | default: widthView %}
 {% assign heightGrid = include.heightGrid | default: mandelbot.heightGrid | default: heightView %}
 {% assign widthStyle = include.widthStyle | default: mandelbot.widthStyle | default: 'auto' %}

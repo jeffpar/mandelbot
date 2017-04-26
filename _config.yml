@@ -1,9 +1,10 @@
 # Site settings
 
-title: "Mandelbot"
+title: Mandelbot
 email: Jeff@pcjs.org
 description: Welcome to Mandelbot!
 baseurl: ""
+domain: mandelbot.net
 url: "http://mandelbot.net"
 twitter_username: mandelbotnet
 github_username:  jeffpar

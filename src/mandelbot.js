@@ -1,13 +1,13 @@
 /**
  * @fileoverview Implements Mandelbots
  * @author <a href="mailto:Jeff@pcjs.org">Jeff Parsons</a>
- * @copyright (c) Jeff Parsons 2017
+ * @copyright © 2017 [Jeff Parsons](mailto:Jeff@pcjs.org)
  *
  * This file is part of an open-source project (https://github.com/jeffpar/mandelbot) with no formal license.
  * All portions not licensed from other sources may be freely reused.  Any derivative work just needs to provide
  * attribution along with the above copyright.
  *
- * Portions copyright 2012 by Christian Stigen Larsen and licensed under [Apache License](http://www.apache.org/licenses/LICENSE-2.0),
+ * Portions copyright 2012 Christian Stigen Larsen and licensed under [Apache License](http://www.apache.org/licenses/LICENSE-2.0),
  * Version 2.0.  Those portions are clearly identified in [mandelbot.js](https://github.com/jeffpar/mandelbot/blob/master/src/mandelbot.js)
  * and must be accompanied by the same Apache License if they are redistributed.
  */
