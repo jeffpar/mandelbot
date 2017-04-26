@@ -156,6 +156,11 @@ the Mandelbot on the [mandelbot.net](http://mandelbot.net/) home page uses ID "d
 This is done so that when other sites produce a thumbnail of the page, they will (hopefully) pick up the
 [default image](/assets/img/default.png) that Mandelbot initially produces.
 
+Operation
+---------
+
+[![Default Mandelbot](/assets/img/default.png)](http://mandelbot.net/)
+
 Modification
 ------------
 
