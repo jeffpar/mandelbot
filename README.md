@@ -159,6 +159,8 @@ This is done so that when other sites produce a thumbnail of the page, they will
 Operation
 ---------
 
+Visit the [website](http://mandelbot.net).
+
 [![Default Mandelbot](/assets/img/default.png)](http://mandelbot.net/)
 
 Modification
