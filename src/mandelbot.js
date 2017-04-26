@@ -17,11 +17,11 @@
 // import * as BigNumber from "./bignumber/bignumber";
 
 /**
- * DEBUG can be set to true to enable debug-only code, assertions, etc.
+ * DEBUG is set to false by the Closure Compiler to disable debug-only code, assertions, etc.
  *
  * @define {boolean}
  */
-let DEBUG = false;
+let DEBUG = true;
 
 let idTimeout = 0;
 let activeMandelbots = [];
@@ -96,13 +96,13 @@ class Mandelbot {
      * to numbers using the unary "plus" operator.
      *
      * @this {Mandelbot}
-     * @param {number} [widthGrid] (grid canvas width; default is view canvas width)
-     * @param {number} [heightGrid] (grid canvas height; default is view canvas height)
+     * @param {number} [widthGrid] (grid canvas width; default is view canvas width or 200)
+     * @param {number} [heightGrid] (grid canvas height; default is view canvas height or 200)
      * @param {number|string} [xCenter] (the x coordinate of the center of the image; default is -0.5)
      * @param {number|string} [yCenter] (the y coordinate of the center of the image; default is 0)
      * @param {number|string} [dxCenter] (the distance from xCenter to the sides of the image; default is 1.5)
      * @param {number|string} [dyCenter] (the distance from yCenter to the top/bottom of the image; default is 1.5)
-     * @param {boolean} [bigNumbers] (true to use BigNumbers for all floating-point calculations; default is false)
+     * @param {boolean} [bigNumbers] (true to use BigNumbers for floating-point calculations; default is false)
      * @param {number} [colorScheme] (one of the Mandelbot.COLOR_SCHEME values; default is GRAY)
      * @param {string} [idView] (the id of an existing view canvas, if any)
      * @param {string} [idStatus] (the id of an existing status control, if any)
@@ -117,6 +117,7 @@ class Mandelbot {
         this.colorScheme = (colorScheme !== undefined? colorScheme : Mandelbot['COLOR_SCHEME']['GRAY']);
         this.aResults = [0, 0, 0, 0];
         this.aPrevious = [];
+        if (DEBUG) this.aEvents = [];
         try {
             /*
              * Why the try/catch?  Bad things CAN happen here; for example, bogus dimensions can cause
@@ -191,8 +192,8 @@ class Mandelbot {
                         mandelbot.bigNumbers = !!mandelbot.getURLValue(Mandelbot.KEY.BIGNUMBERS, mandelbot.bigNumbers);
                         let x  = mandelbot.getURLValue(Mandelbot.KEY.XCENTER,  mandelbot.xDefault);
                         let y  = mandelbot.getURLValue(Mandelbot.KEY.YCENTER,  mandelbot.yDefault);
-                        let dx = mandelbot.getURLValue(Mandelbot.KEY.DXCENTER, mandelbot.dxDefault);
-                        let dy = mandelbot.getURLValue(Mandelbot.KEY.DYCENTER, mandelbot.dyDefault);
+                        let dx = mandelbot.getURLValue(Mandelbot.KEY.DXCENTER, mandelbot.dxDefault, true);
+                        let dy = mandelbot.getURLValue(Mandelbot.KEY.DYCENTER, mandelbot.dyDefault, true);
                         mandelbot.prepGrid(x, y, dx, dy);
                         mandelbot.updatePrevious();
                     }
@@ -247,7 +248,7 @@ class Mandelbot {
     /**
      * initGrid(widthGrid, heightGrid)
      *
-     * If no width and/or height is specified, and no view width or height is available, we default to 200x200.
+     * If no width and/or height is specified, and no view width or height is available, we use defaults.
      *
      * @this {Mandelbot}
      * @param {number} widthGrid
@@ -258,8 +259,8 @@ class Mandelbot {
     {
         this.canvasGrid = /** @type {HTMLCanvasElement} */ (document.createElement("canvas"));
         if (this.canvasGrid) {
-            this.canvasGrid.width = this.widthGrid = widthGrid || 200;
-            this.canvasGrid.height = this.heightGrid = heightGrid || 200;
+            this.canvasGrid.width = this.widthGrid = widthGrid || Mandelbot.DEFAULT.WGRID;
+            this.canvasGrid.height = this.heightGrid = heightGrid || Mandelbot.DEFAULT.HGRID;
             if (this.contextGrid = this.canvasGrid.getContext("2d")) {
                 this.imageGrid = this.contextGrid.createImageData(this.widthGrid, this.heightGrid);
                 if (this.imageGrid) {
@@ -404,6 +405,7 @@ class Mandelbot {
             this.colStart = colGrid;
             this.rowStart = rowGrid;
             this.msStart = Date.now();
+            if (DEBUG) this.aEvents.push("down event: x=" + this.colStart + " y=" + this.rowStart + " (" + this.msStart + "ms)");
         }
         else if (fStart !== false) {
             this.colSelect = this.colStart;
@@ -411,6 +413,7 @@ class Mandelbot {
             this.widthSelect = colGrid - this.colSelect;
             this.heightSelect = rowGrid - this.rowSelect;
             if (!this.widthSelect || !this.heightSelect) {
+                if (DEBUG) this.aEvents.push("move event: cx=" + this.widthSelect + " cy=" + this.heightSelect + " (zero delta)");
                 this.widthSelect = this.heightSelect = 0;
             } else {
                 let aspectGrid = Math.abs(this.widthGrid / this.heightGrid);
@@ -419,6 +422,7 @@ class Mandelbot {
                     let widthSelect = Math.abs((this.widthGrid * this.heightSelect) / this.heightGrid);
                     this.widthSelect = (this.widthSelect < 0)? -widthSelect : widthSelect;
                 }
+                if (DEBUG) this.aEvents.push("move event: cx=" + this.widthSelect + " cy=" + this.heightSelect);
             }
         }
         else {
@@ -430,6 +434,9 @@ class Mandelbot {
              * rectangle, if any.  Clicking/tapping inside the selection triggers a reposition and recalculate.
              */
             let msRelease = Date.now() - this.msStart;
+
+            if (DEBUG) this.aEvents.push("up event: x=" + this.colStart + " y=" + this.rowStart + " cx=" + this.widthSelect + " cy=" + this.heightSelect + " (" + msRelease + "ms delta)");
+
             if (colGrid == this.colStart && rowGrid == this.rowStart || msRelease < 100) {
 
                 let xCenter, yCenter, dxCenter, dyCenter;
@@ -536,6 +543,12 @@ class Mandelbot {
      */
     prepGrid(xCenter, yCenter, dxCenter, dyCenter, fUpdate)
     {
+        if (DEBUG) {
+            for (let i = 0; i < this.aEvents.length; i++) {
+                console.log(this.aEvents[i]);
+            }
+            this.aEvents = [];
+        }
         if (!this.bigNumbers) {
             this.xCenter = xCenter;
             this.yCenter = yCenter;
@@ -627,7 +640,12 @@ class Mandelbot {
     /**
      * getURLHash(idView, hash)
      *
-     * If the hash portion of the URL contains values for the specified idView, store those values in hashTable.
+     * If the hash portion of the URL contains values for idView, store those values in hashTable;
+     * if this is a "headless" Mandelbot (idView is not set), then the hash table will be empty.
+     *
+     * TODO: We don't currently support encoding values for multiple Mandelbots in a single URL; all
+     * we do is verify that the current hash portion is for the current Mandelbot.  Only the Mandelbot
+     * that last updated the hash portion will be successful.
      *
      * @this {Mandelbot}
      * @param {string|undefined} idView
@@ -848,15 +866,17 @@ class Mandelbot {
         nMax = nMax || nMaxIterationsPerNumber;
         let n = nMax;
         /*
-         * Let's restate the Mandelbrot function slightly, using z{n} to indicate the nth iteration of z:
+         * Let's use z{n} to indicate the nth iteration of z in the Mandelbrot function:
          *
          *      z{n+1} = z{n}^2 + c
          *
-         * z is a complex number of the form (a + bi), where a and b are real and imaginary coefficients; ditto for c.
+         * z is a complex number of the form (a + bi), where a and b are real and imaginary coefficients;
+         * the initial z, z{0}, is (0 + 0i).
          *
-         * z{0}, the initial z, is (0 + 0i), and the coefficients for c are passed to us: (x + yi).
+         * c is also a complex number of the form (x + yi), and it remains constant; the x and y coefficients
+         * are inputs to this function.
          *
-         * The n+1 iteration requires that we calculate the square of the nth iteration, which means squaring (a + bi):
+         * The n+1 iteration requires calculating the square of the nth iteration, which means squaring (a + bi):
          *
          *      (a + bi) * (a + bi)
          *
@@ -868,7 +888,7 @@ class Mandelbot {
          *
          *      (a * a) + (2 * a * b * i) - (b * b)
          *
-         * So the real and imaginary coefficients for z{n+1}, after adding c, which is (x + yi), are:
+         * So the real and imaginary coefficients for z{n+1}, after adding the coefficients of c (x and y), are:
          *
          *      a{n+1} = (a * a) - (b * b) + x
          *      b{n+1} = (2 * a * b) + y
@@ -911,23 +931,33 @@ class Mandelbot {
                 } while (--l > 0);
             }
         } else {
-            let a = new BigNumber(0), b = new BigNumber(0), ta = new BigNumber(0), tb = new BigNumber(0);
+            /*
+             * The BigNumber loop.  Note that as and bs ("a squared" and "b squared") are BigNumber
+             * values that are converted to normal numbers aa and bb at the end, because at this time,
+             * we don't support returning BigNumber values in the results array.
+             *
+             * TODO: All round() operations need to be reviewed; at the very least, some degree of control
+             * over the amount of rounding must eventually be provided.  Some minimum amount of rounding
+             * is required, because the BigNumber library doesn't provide any automatic precision control.
+             * Without rounding, these values quickly amass huge numbers of digits, and we die.
+             */
+            let a = new BigNumber(0), b = new BigNumber(0), as = new BigNumber(0), bs = new BigNumber(0);
             do {
                 b = a.times(b).times(2).plus(y).round(20);
-                a = ta.minus(tb).plus(x);
-                ta = a.times(a).round(20);
-                tb = b.times(b).round(20);
-            } while (--n > 0 && ta.plus(tb).lt(4));
+                a = as.minus(bs).plus(x);
+                as = a.times(a).round(20);
+                bs = b.times(b).round(20);
+            } while (--n > 0 && as.plus(bs).lt(4));
             if (n && aResults) {
                 let l = 4;  // iterate a few (4) more times to provide more detail; see http://linas.org/art-gallery/escape/escape.html
                 do {
                     b = a.times(b).times(2).plus(y).round(20);
-                    a = ta.minus(tb).plus(x);
-                    ta = a.times(a).round(20);
-                    tb = b.times(b).round(20);
+                    a = as.minus(bs).plus(x);
+                    as = a.times(a).round(20);
+                    bs = b.times(b).round(20);
                 } while (--l > 0);
-                aa = ta.toNumber();
-                bb = tb.toNumber();
+                aa = as.toNumber();
+                bb = bs.toNumber();
             }
         }
         /*
@@ -1080,6 +1110,8 @@ class Mandelbot {
 }
 
 Mandelbot.DEFAULT = {
+    WGRID:      200,
+    HGRID:      200,
     XCENTER:    -0.5,
     YCENTER:    0,
     DXCENTER:   1.5,

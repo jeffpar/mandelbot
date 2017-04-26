@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Mandelbot</title>
+    <meta name="description" content="Welcome to Mandelbot!"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#157878">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="/mandelbot/_site/assets/css/style.css?v=71e4385ce1ad03071088c92e6f7ed13313dc1357">
+
+      <script src="/mandelbot/src/bignumber/bignumber.js" type="text/javascript"></script>
+      <script src="/mandelbot/src/mandelbot.js" type="text/javascript"></script>
+
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Mandelbot</h1>
+
+        <a href="http://github.com/jeffpar/mandelbot" class="btn">View on GitHub</a>
+
+
+    </section>
+
+    <section class="main-content">
+      <h2 id="welcome-to-mandelbot">Welcome to the Mandelbot Project</h2>
+
+      <p>This page was created for debugging with the WebStorm IDE, which provides its own web server.</p>
+
+      <canvas class="mandelbot-view" id="mandelbot1" width="1024" height="1024" style="width: 100%; height: auto"></canvas>
+      <p class="mandelbot-status" id="status1">No status</p>
+      <p><button id="reset1" type="button">Reset</button>
+        <button id="prev1" type="button" disabled="disabled">Previous</button>
+        <script type="text/javascript">
+          var mandelbot = newMandelbot(1024,1024,undefined,undefined,undefined,undefined,false,Mandelbot.COLOR_SCHEME.HSV3,"mandelbot1","status1");
+          if (mandelbot) {
+            mandelbot.addControl(Mandelbot.CONTROL_STATUS, "status1");
+            mandelbot.addControl(Mandelbot.CONTROL_RESET, "reset1");
+            mandelbot.addControl(Mandelbot.CONTROL_PREVIOUS, "prev1");
+          }
+        </script></p>
+
+      <footer class="site-footer">
+
+        <span class="site-footer-owner"><a href="http://mandelbot.net">mandelbot.net</a> &copy; 2017 <a href="https://github.com/jeffpar">jeffpar</a></span>
+
+      </footer>
+    </section>
+
+
+  </body>
+</html>
