@@ -1,7 +1,7 @@
 /**
  * @fileoverview Implements Mandelbots
  * @author <a href="mailto:Jeff@pcjs.org">Jeff Parsons</a>
- * @copyright © 2017 [Jeff Parsons](mailto:Jeff@pcjs.org)
+ * @copyright Copyright © 2017 [Jeff Parsons](mailto:Jeff@pcjs.org)
  *
  * This file is part of an open-source project (https://github.com/jeffpar/mandelbot) with no formal license.
  * All portions not licensed from other sources may be freely reused.  Any derivative work just needs to provide
@@ -113,7 +113,7 @@ class Mandelbot {
                 bigNumbers, colorScheme, idView, idStatus)
     {
         this.getURLHash(idView);
-        this.bigNumbers = bigNumbers || false;
+        this.bigNumbers = !!this.getURLValue(Mandelbot.KEY.BIGNUMBERS, bigNumbers || false);
         this.colorScheme = (colorScheme !== undefined? colorScheme : Mandelbot['COLOR_SCHEME']['GRAY']);
         this.aResults = [0, 0, 0, 0];
         this.aPrevious = [];
@@ -163,8 +163,8 @@ class Mandelbot {
             if (control) {
                 control.onclick = function onReset() {
                     /*
-                     * If RESET is clicked when all coordinates are already at their reset values, then revert to our
-                     * built-in defaults.
+                     * If RESET is clicked after all coordinates have already returned to their reset values,
+                     * then revert to the built-in defaults (think of it as a hard reset, as opposed to a soft reset).
                      */
                     mandelbot.aPrevious = [];
                     mandelbot.updatePrevious();
@@ -188,6 +188,7 @@ class Mandelbot {
                     let hash = mandelbot.aPrevious.pop();
                     if (hash != null) {
                         mandelbot.getURLHash(mandelbot.idView, hash);
+                        mandelbot.bigNumbers = !!mandelbot.getURLValue(Mandelbot.KEY.BIGNUMBERS, mandelbot.bigNumbers);
                         let x  = mandelbot.getURLValue(Mandelbot.KEY.XCENTER,  mandelbot.xDefault);
                         let y  = mandelbot.getURLValue(Mandelbot.KEY.YCENTER,  mandelbot.yDefault);
                         let dx = mandelbot.getURLValue(Mandelbot.KEY.DXCENTER, mandelbot.dxDefault);
@@ -535,12 +536,11 @@ class Mandelbot {
      */
     prepGrid(xCenter, yCenter, dxCenter, dyCenter, fUpdate)
     {
-        this.xCenter = xCenter;
-        this.yCenter = yCenter;
-        this.dxCenter = dxCenter;
-        this.dyCenter = dyCenter;
-        this.colUpdate = this.rowUpdate = 0;
         if (!this.bigNumbers) {
+            this.xCenter = xCenter;
+            this.yCenter = yCenter;
+            this.dxCenter = dxCenter;
+            this.dyCenter = dyCenter;
             this.xLeft = this.xCenter - this.dxCenter;
             this.xInc = (this.dxCenter * 2) / this.widthGrid;
             this.yTop = this.yCenter + this.dyCenter;
@@ -548,6 +548,15 @@ class Mandelbot {
             this.xUpdate = this.xLeft;
             this.yUpdate = this.yTop;
         } else {
+            /*
+             * Normally, if bigNumbers is true, the inputs will already be BigNumbers, but there is at least
+             * one exception: when onReset() calls us with hard-coded numbers.  Since the BigNumber constructor
+             * accepts both numbers and BigNumbers, the simplest solution is to always call the constructor.
+             */
+            this.xCenter = new BigNumber(xCenter);
+            this.yCenter = new BigNumber(yCenter);
+            this.dxCenter = new BigNumber(dxCenter);
+            this.dyCenter = new BigNumber(dyCenter);
             this.xLeft = this.xCenter.minus(this.dxCenter);
             this.xInc = this.dxCenter.times(2).dividedBy(this.widthGrid).round(20);
             this.yTop = this.yCenter.plus(this.dyCenter);
@@ -555,6 +564,7 @@ class Mandelbot {
             this.xUpdate = this.xLeft.plus(0);    // simple way of generating a new BigNumber with the same value
             this.yUpdate = this.yTop.plus(0);
         }
+        this.colUpdate = this.rowUpdate = 0;
         this.nMaxIterations = Mandelbot.getMaxIterations(this.dxCenter, this.dyCenter);
         this.updateStatus("X: " + this.xCenter + " (+/-" + this.dxCenter + ") Y: " + this.yCenter + " (+/-" + this.dyCenter + ") Iterations: " + this.nMaxIterations + (this.bigNumbers? " (BigNumbers)" : ""));
         if (fUpdate !== false) {
@@ -645,14 +655,18 @@ class Mandelbot {
      *
      * @this {Mandelbot}
      * @param {string} key
-     * @param {number|string} init
+     * @param {number|string|boolean} init
      * @param {boolean} [abs] (true to return absolute value)
      * @return {number|BigNumber}
      */
     getURLValue(key, init, abs)
     {
+        let hash = this.hashTable[key];
+        if (typeof init == 'boolean') {
+            return (hash && (hash == 'true' || +hash) || !hash && init)? 1 : 0;
+        }
         let value;
-        init = this.hashTable[key] || init;
+        init = hash || init;
         if (this.bigNumbers) {
             value = new BigNumber(init);
             if (abs) value = value.abs();
@@ -689,6 +703,12 @@ class Mandelbot {
             hash += '&' + Mandelbot.KEY.YCENTER  + '=' + this.yCenter;
             hash += '&' + Mandelbot.KEY.DXCENTER + '=' + this.dxCenter;
             hash += '&' + Mandelbot.KEY.DYCENTER + '=' + this.dyCenter;
+            /*
+             * I used to encode BIGNUMBERS only if it was true (since the default is false), but
+             * then it becomes difficult to override the setting on pages that set bigNumbers to true,
+             * so now we always encode.
+             */
+            hash += '&' + Mandelbot.KEY.BIGNUMBERS + '=' + this.bigNumbers;
             location.hash = hash;
         }
     }
@@ -1074,7 +1094,8 @@ Mandelbot.KEY = {
     XCENTER:    "x",
     YCENTER:    "y",
     DXCENTER:   "dx",
-    DYCENTER:   "dy"
+    DYCENTER:   "dy",
+    BIGNUMBERS: "big"
 };
 
 Mandelbot['COLOR_SCHEME'] = {
