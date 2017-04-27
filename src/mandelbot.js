@@ -322,31 +322,59 @@ class Mandelbot {
              */
             control.addEventListener(
                 'touchstart',
-                function onTouchStart(event) { mandelbot.processSelectAction(Mandelbot.ACTION.PRESS, event); }
+                function onTouchStart(event) {
+                    mandelbot.processSelectAction(Mandelbot.ACTION.PRESS, event);
+                }
             );
             control.addEventListener(
                 'touchmove',
-                function onTouchMove(event) { mandelbot.processSelectAction(Mandelbot.ACTION.MOVE, event); }
+                function onTouchMove(event) {
+                    mandelbot.processSelectAction(Mandelbot.ACTION.MOVE, event);
+                }
             );
             control.addEventListener(
                 'touchend',
-                function onTouchEnd(event) { mandelbot.processSelectAction(Mandelbot.ACTION.RELEASE, event); }
+                function onTouchEnd(event) {
+                    mandelbot.processSelectAction(Mandelbot.ACTION.RELEASE, event);
+                }
             );
             control.addEventListener(
                 'mousedown',
-                function onMouseDown(event) { if (!event.button) mandelbot.processSelectAction(Mandelbot.ACTION.PRESS, event); }
+                function onMouseDown(event) {
+                    if (!event.button) {
+                        mandelbot.processSelectAction(Mandelbot.ACTION.PRESS, event);
+                    }
+                }
             );
             control.addEventListener(
                 'mousemove',
-                function onMouseMove(event) { if (event.buttons & 0x1) mandelbot.processSelectAction(Mandelbot.ACTION.MOVE, event); }
+                function onMouseMove(event) {
+                    /*
+                     * Sadly, the 'buttons' property is not supported in all browsers (eg, Safari),
+                     * so my original test for the left button (event.buttons & 0x1) is not sufficient.
+                     * Instead, we'll rely on our own colStart/rowStart properties, which should only
+                     * be positive after 'mousedown' and before 'mouseup'.
+                     */
+                    if (mandelbot.colStart >= 0) {
+                        mandelbot.processSelectAction(Mandelbot.ACTION.MOVE, event);
+                    }
+                }
             );
             control.addEventListener(
                 'mouseup',
-                function onMouseUp(event) { if (!event.button) mandelbot.processSelectAction(Mandelbot.ACTION.RELEASE, event); }
+                function onMouseUp(event) {
+                    if (!event.button) {
+                        mandelbot.processSelectAction(Mandelbot.ACTION.RELEASE, event);
+                    }
+                }
             );
             control.addEventListener(
                 'mouseout',
-                function onMouseUp(event) { mandelbot.processSelectAction(Mandelbot.ACTION.RELEASE, event); }
+                function onMouseUp(event) {
+                    if (mandelbot.colStart >= 0) {
+                        mandelbot.processSelectAction(Mandelbot.ACTION.RELEASE, event);
+                    }
+                }
             );
         }
     }
@@ -846,13 +874,11 @@ class Mandelbot {
             }
             this.logDebug = [];
         }
-        if (message) {
-            if (!this.controlStatus) {
-                this.messageStatus = message;
-            } else {
-                this.controlStatus.innerHTML = message;
-                this.messageStatus = "";
-            }
+        if (!this.controlStatus) {
+            this.messageStatus = message;
+        } else {
+            this.controlStatus.innerHTML = message;
+            this.messageStatus = "";
         }
     }
 
