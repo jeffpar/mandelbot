@@ -162,11 +162,10 @@ following CSS properties:
 
 Originally, this was done so that when other sites produced a thumbnail of the home page, they would (hopefully) pick
 up the [default image](/assets/img/default.png) that the Mandelbot initially produces.  Unfortunately, that tactic
-didn't appear to work, so next I tried adding some metadata to the [default](/_layouts/default.html) page layout:
+was a failure, so I took a more conventional approach and added some metadata to the [default](/_layouts/default.html)
+page template:
 
-	<meta property="og:image" content="/assets/img/default.png">
-
-but that seems to have been a flop as well.  Perhaps the image is too large.  Oh well.
+	<meta property="og:image" content="http://mandelbot.net/assets/img/default.png">
 
 Operation
 ---------

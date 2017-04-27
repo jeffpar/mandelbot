@@ -2,7 +2,9 @@
 
 title: Mandelbot
 email: Jeff@pcjs.org
-description: Welcome to Mandelbot!
+description: >
+  Mandelbots: Interactive JavaScript widgets that produce images of the Mandelbrot Set.  Designed to support
+  any desktop or mobile web browser with either a mouse or touch interface.
 baseurl: ""
 domain: mandelbot.net
 url: "http://mandelbot.net"
