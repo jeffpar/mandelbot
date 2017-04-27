@@ -98,7 +98,7 @@ class Mandelbot {
      * @this {Mandelbot}
      * @param {number} [widthGrid] (grid canvas width; default is view canvas width or 200)
      * @param {number} [heightGrid] (grid canvas height; default is view canvas height or 200)
-     * @param {number|string} [xCenter] (the x coordinate of the center of the image; default is -0.5)
+     * @param {number|string} [xCenter] (the x coordinate of the center of the image; default is -0.75)
      * @param {number|string} [yCenter] (the y coordinate of the center of the image; default is 0)
      * @param {number|string} [dxCenter] (the distance from xCenter to the sides of the image; default is 1.5)
      * @param {number|string} [dyCenter] (the distance from yCenter to the top/bottom of the image; default is 1.5)
@@ -112,12 +112,12 @@ class Mandelbot {
                 dxCenter = Mandelbot.DEFAULT.DXCENTER, dyCenter = Mandelbot.DEFAULT.DYCENTER,
                 bigNumbers, colorScheme, idView, idStatus)
     {
+        if (DEBUG) this.logDebug = [];
         this.getURLHash(idView);
         this.bigNumbers = !!this.getURLValue(Mandelbot.KEY.BIGNUMBERS, bigNumbers || false);
         this.colorScheme = (colorScheme !== undefined? colorScheme : Mandelbot['COLOR_SCHEME']['GRAY']);
         this.aResults = [0, 0, 0, 0];
         this.aPrevious = [];
-        if (DEBUG) this.aEvents = [];
         try {
             /*
              * Why the try/catch?  Bad things CAN happen here; for example, bogus dimensions can cause
@@ -179,7 +179,6 @@ class Mandelbot {
                     mandelbot.prepGrid(mandelbot.xReset, mandelbot.yReset, mandelbot.dxReset, mandelbot.dyReset);
                 };
             }
-            this.updateStatus();
             break;
 
         case Mandelbot['CONTROL_PREVIOUS']:
@@ -200,6 +199,15 @@ class Mandelbot {
                 }
             }
             this.updatePrevious();
+            break;
+
+        case Mandelbot['CONTROL_DEBUG']:
+            if (DEBUG && control) {
+                this.controlDebug = control;
+                control.onclick = function onDebug() {
+                    mandelbot.updateStatus();
+                };
+            }
             break;
         }
     }
@@ -303,169 +311,193 @@ class Mandelbot {
             this.widthSelect = this.heightSelect = 0;
 
             /*
-             * As long as fSelectDefault is false, processSelectEvent() will call preventDefault()
+             * As long as fSelectDefault is false, processSelectAction() will call preventDefault()
              * on every event, to prevent the page from moving/scrolling while we process select events.
              */
             this.fSelectDefault = false;
 
+            /*
+             * NOTE: The mouse event handlers below deal only with events where the left button is involved
+             * (ie, left button is pressed, down, or released).
+             */
             control.addEventListener(
                 'touchstart',
-                function onTouchStart(event) { mandelbot.processSelectEvent(event, true); }
+                function onTouchStart(event) { mandelbot.processSelectAction(Mandelbot.ACTION.PRESS, event); }
             );
             control.addEventListener(
                 'touchmove',
-                function onTouchMove(event) { mandelbot.processSelectEvent(event); }
+                function onTouchMove(event) { mandelbot.processSelectAction(Mandelbot.ACTION.MOVE, event); }
             );
             control.addEventListener(
                 'touchend',
-                function onTouchEnd(event) { mandelbot.processSelectEvent(event, false); }
+                function onTouchEnd(event) { mandelbot.processSelectAction(Mandelbot.ACTION.RELEASE, event); }
             );
             control.addEventListener(
                 'mousedown',
-                function onMouseDown(event) { if (!event.button) mandelbot.processSelectEvent(event, true); }
+                function onMouseDown(event) { if (!event.button) mandelbot.processSelectAction(Mandelbot.ACTION.PRESS, event); }
             );
             control.addEventListener(
                 'mousemove',
-                function onMouseMove(event) { if (event.buttons & 0x1) mandelbot.processSelectEvent(event); }
+                function onMouseMove(event) { if (event.buttons & 0x1) mandelbot.processSelectAction(Mandelbot.ACTION.MOVE, event); }
             );
             control.addEventListener(
                 'mouseup',
-                function onMouseUp(event) { if (!event.button) mandelbot.processSelectEvent(event, false); }
+                function onMouseUp(event) { if (!event.button) mandelbot.processSelectAction(Mandelbot.ACTION.RELEASE, event); }
             );
             control.addEventListener(
                 'mouseout',
-                function onMouseUp(event) { mandelbot.processSelectEvent(event, false); }
+                function onMouseUp(event) { mandelbot.processSelectAction(Mandelbot.ACTION.RELEASE, event); }
             );
         }
     }
 
     /**
-     * processSelectEvent(event, fStart)
+     * processSelectAction(action, event)
+     *
+     * Although this may appear to be an event handler, I prefer to think of it as an "action handler";
+     * it deals with specific user actions that are usually accompanied by an Event object, but the exact
+     * nature of the Event object, if any, will vary according to browser and device.
      *
      * @this {Mandelbot}
-     * @param {Event} event object from a 'touch' or 'mouse' event
-     * @param {boolean} [fStart] (true if 'touchstart/mousedown', false if 'touchend/mouseup', undefined if 'touchmove/mousemove')
+     * @param {number} action
+     * @param {Event} [event] (eg, the object from a 'touch' or 'mouse' event)
      */
-    processSelectEvent(event, fStart)
+    processSelectAction(action, event)
     {
-        let colView, rowView;
+        let colView, rowView, colGrid, rowGrid;
 
-        /**
-         * @name Event
-         * @property {Array} targetTouches
-         */
-        event = event || window.event;
+        if (action < Mandelbot.ACTION.RELEASE) {
+            /**
+             * @name Event
+             * @property {Array} targetTouches
+             */
+            event = event || window.event;
 
-        if (!event.targetTouches || !event.targetTouches.length) {
-            colView = event.pageX;
-            rowView = event.pageY;
-        } else {
-            colView = event.targetTouches[0].pageX;
-            rowView = event.targetTouches[0].pageY;
-        }
-
-        /*
-         * Touch coordinates (that is, the pageX and pageY properties) are relative to the page, so to make
-         * them relative to the canvas, we must subtract the canvas's left and top positions.  This Apple web page:
-         *
-         *      https://developer.apple.com/library/safari/documentation/AudioVideo/Conceptual/HTML-canvas-guide/AddingMouseandTouchControlstoCanvas/AddingMouseandTouchControlstoCanvas.html
-         *
-         * makes it sound simple, but it turns out we have to walk the canvas' entire "parentage" of DOM elements
-         * to get the exact offsets.
-         */
-        let colOffset = 0;
-        let rowOffset = 0;
-        let control = this.controlSelect;
-        do {
-            if (!isNaN(control.offsetLeft)) {
-                colOffset += control.offsetLeft;
-                rowOffset += control.offsetTop;
+            if (!event.targetTouches || !event.targetTouches.length) {
+                colView = event.pageX;
+                rowView = event.pageY;
+            } else {
+                colView = event.targetTouches[0].pageX;
+                rowView = event.targetTouches[0].pageY;
             }
-        } while ((control = control.offsetParent));
 
-        /*
-         * Due to the responsive nature of our pages, the displayed size of the canvas may be smaller than the
-         * allocated size, and the coordinates we receive from events are based on the currently displayed size.
-         */
-        colView = (colView - colOffset) * (this.widthView / this.controlSelect.offsetWidth);
-        rowView = (rowView - rowOffset) * (this.heightView / this.controlSelect.offsetHeight);
+            /*
+             * Touch coordinates (that is, the pageX and pageY properties) are relative to the page, so to make
+             * them relative to the canvas, we must subtract the canvas's left and top positions.  This Apple web page:
+             *
+             *      https://developer.apple.com/library/safari/documentation/AudioVideo/Conceptual/HTML-canvas-guide/AddingMouseandTouchControlstoCanvas/AddingMouseandTouchControlstoCanvas.html
+             *
+             * makes it sound simple, but it turns out we have to walk the canvas' entire "parentage" of DOM elements
+             * to get the exact offsets.
+             */
+            let colOffset = 0;
+            let rowOffset = 0;
+            let control = this.controlSelect;
+            do {
+                if (!isNaN(control.offsetLeft)) {
+                    colOffset += control.offsetLeft;
+                    rowOffset += control.offsetTop;
+                }
+            } while ((control = control.offsetParent));
 
-        /*
-         * Next, we need to convert colView,rowView to colGrid,rowGrid, because the selection rectangle is drawn
-         * on the grid canvas, not the view canvas (to avoid unwanted erase/flicker issues as the rectangle changes).
-         */
-        let colGrid = Math.round((this.widthGrid * colView) / this.widthView);
-        let rowGrid = Math.round((this.heightGrid * rowView) / this.heightView);
+            /*
+             * Due to the responsive nature of our pages, the displayed size of the canvas may be smaller than the
+             * allocated size, and the coordinates we receive from events are based on the currently displayed size.
+             */
+            colView = (colView - colOffset) * (this.widthView / this.controlSelect.offsetWidth);
+            rowView = (rowView - rowOffset) * (this.heightView / this.controlSelect.offsetHeight);
+
+            /*
+             * Next, we need to convert colView,rowView to colGrid,rowGrid, because the selection rectangle is drawn
+             * on the grid canvas, not the view canvas (to avoid unwanted erase/flicker issues as the rectangle changes).
+             */
+            colGrid = Math.round((this.widthGrid * colView) / this.widthView);
+            rowGrid = Math.round((this.heightGrid * rowView) / this.heightView);
+        }
 
         if (!this.fSelectDefault) event.preventDefault();
 
         this.hideSelection();
 
-        if (fStart) {
+        if (action == Mandelbot.ACTION.PRESS) {
             /*
-             * Case 1 of 3: a 'down' event.  All we do is record the grid position of that event,
-             * transitioning colStart and rowStart from negative to non-negative values (because grid
-             * positions cannot be negative).
+             * All we do is record the grid position of that event, transitioning colStart and rowStart
+             * from negative to non-negative values (grid positions cannot be negative).
              */
             this.colStart = colGrid;
             this.rowStart = rowGrid;
             this.msStart = Date.now();
-            if (DEBUG) this.aEvents.push("down event x,y=" + colGrid + "," + rowGrid);
+            if (DEBUG) this.logDebug.push("press action x,y=" + this.colStart + "," + this.rowStart);
         }
-        else if (fStart !== false) {
+        else if (action == Mandelbot.ACTION.MOVE) {
             /*
-             * Case 2 of 3: a 'move' event.  In the case of a mouse, move events can happen all the time,
-             * whether a button is 'down' or not, but our event listener automatically suppresses all moves
-             * except those where the left button is down.
+             * In the case of a mouse, this can happen all the time, whether a button is 'down' or not, but
+             * our event listener automatically suppresses all moves except those where the left button is down.
+             *
+             * Also, we don't want to change the selection unless the delta is at least some minimal amount
+             * (eg, 10 points), because otherwise we could mis-detect a sloppy click/tap as some tiny selection.
              */
-            this.colSelect = this.colStart;
-            this.rowSelect = this.rowStart;
-            this.widthSelect = colGrid - this.colSelect;
-            this.heightSelect = rowGrid - this.rowSelect;
-            if (!this.widthSelect || !this.heightSelect) {
-                this.widthSelect = this.heightSelect = 0;
-            } else {
+            let colDelta = Math.abs(this.colStart - colGrid), rowDelta = Math.abs(this.rowStart - rowGrid);
+            if (colDelta >= 10 && rowDelta >= 10) {
+                this.colSelect = this.colStart;
+                this.rowSelect = this.rowStart;
+                this.widthSelect = colGrid - this.colSelect;
+                this.heightSelect = rowGrid - this.rowSelect;
+                /*
+                 * Constrain the selection rectangle to one whose aspect ratio matches that of the grid;
+                 * if needed, we arbitrarily modify the width (not the height) to bring it into compliance.
+                 */
                 let aspectGrid = Math.abs(this.widthGrid / this.heightGrid);
                 let aspectSelect = Math.abs(this.widthSelect / this.heightSelect);
                 if (aspectSelect != aspectGrid) {
                     let widthSelect = Math.abs((this.widthGrid * this.heightSelect) / this.heightGrid);
                     this.widthSelect = (this.widthSelect < 0)? -widthSelect : widthSelect;
                 }
+                if (DEBUG) this.logDebug.push("move action dx,dy=" + this.widthSelect + "," + this.heightSelect);
             }
-            if (DEBUG) this.aEvents.push("move event dx,dy=" + this.widthSelect + "," + this.heightSelect);
         }
-        else {
+        else if (action == Mandelbot.ACTION.RELEASE) {
             /*
-             * Case 3 of 3: an 'up' event.
+             * Here's the overall RELEASE logic:
+             *
+             *      if this is a click/tap (msRelease < 200ms)
+             *          if there is a selection rectangle
+             *              if the click/tap is INSIDE the rectangle
+             *                  calculate new position and range
+             *              else
+             *                  cancel the selection
+             *          else
+             *              calculate new position only
+             *      else
+             *          do nothing (most likely, the user just finished making a new selection)
+             *
+             * All 'mouseup' events include a position, and on iOS touch devices, the 'touchend' event includes
+             * a position as well.  Sadly, on Android touch devices, the 'touchend' event does NOT include a position,
+             * so the colGrid and rowGrid variables we calculate above cannot be relied upon here.
+             *
+             * However, since our main concern here is what to do on click/tap action, we should be able to rely on
+             * colStart and rowStart (we assumed that the apple did not fall far from the tree).
              */
             let msRelease = Date.now() - this.msStart;
+            if (msRelease < 200) {
 
-            if (colGrid == this.colStart && rowGrid == this.rowStart && msRelease < 200) {
-                /*
-                 * Here, we assume a quick click-and-release or tap occurred; ie, the current grid position matched
-                 * the starting grid position and the click-to-release time was very short (less than 200ms).
-                 *
-                 * We only care about this case to determine if the user clicked or tapped inside or outside the
-                 * selection rectangle, if any.  Clicking/tapping inside a selection triggers a new range; outside
-                 * a selection triggers a new position.
-                 */
-                if (DEBUG) this.aEvents.push("click event x,y=" + colGrid + "," + rowGrid + " dx,dy=" + this.widthSelect + "," + this.heightSelect + " (" + msRelease + "ms delta)");
+                if (DEBUG) this.logDebug.push("click action x,y=" + this.colStart + "," + this.rowStart + " dx,dy=" + this.widthSelect + "," + this.heightSelect);
 
                 let xCenter, yCenter, dxCenter, dyCenter;
 
                 if (this.widthSelect && this.heightSelect) {
                     /*
-                     * Since there's a selection rectangle, let's see if this 'up' event occurred inside
-                     * or outside the rectangle.
+                     * Since there's a selection rectangle, let's see if this RELEASE occurred inside or
+                     * outside the rectangle.
                      */
                     let colBeg = this.colSelect;
                     let rowBeg = this.rowSelect;
                     let colEnd = this.colSelect + this.widthSelect;
                     let rowEnd = this.rowSelect + this.heightSelect;
                     /*
-                     * Since the width and/or height can be negative (ie, if the selection extended above or
-                     * to the left of the starting position), swap the beginning and ending positions as needed to
-                     * simplify the range check below.
+                     * Since the width and/or height can be negative (if the selection extended above or to
+                     * the left of the starting position), swap the beginning and ending positions as needed
+                     * to simplify the range check below.
                      */
                     if (colEnd < colBeg) {
                         colBeg = colEnd;
@@ -475,11 +507,11 @@ class Mandelbot {
                         rowBeg = rowEnd;
                         rowEnd = this.rowSelect;
                     }
-                    if (colGrid >= colBeg && colGrid <= colEnd && rowGrid >= rowBeg && rowGrid <= rowEnd) {
+                    if (this.colStart > colBeg && this.colStart < colEnd && this.rowStart > rowBeg && this.rowStart <= rowEnd) {
                         /*
-                         * The event occurred inside the selection, so calculate a new range.
+                         * The action occurred inside the selection, so calculate a new range.
                          */
-                        if (DEBUG) this.aEvents.push("click inside " + colBeg + "," + rowBeg + "--" + colEnd + "," + rowEnd);
+                        if (DEBUG) this.logDebug.push("click inside " + colBeg + "," + rowBeg + "--" + colEnd + "," + rowEnd);
 
                         if (!this.bigNumbers) {
                             dxCenter = ((colEnd - colBeg) * this.xInc) / 2;
@@ -495,36 +527,36 @@ class Mandelbot {
                         this.prepGrid(xCenter, yCenter, dxCenter, dyCenter, true);
                     }
                     else {
-                        if (DEBUG) this.aEvents.push("click outside " + colBeg + "," + rowBeg + "--" + colEnd + "," + rowEnd);
+                        if (DEBUG) this.logDebug.push("click outside " + colBeg + "," + rowBeg + "--" + colEnd + "," + rowEnd);
                     }
-                    /*
-                     * In either case (inside or outside), the selection goes away.
-                     */
-                    this.widthSelect = this.heightSelect = 0;
                 }
-                else if (!this.widthSelect && !this.heightSelect) {
+                else {
                     /*
                      * Since there's NO selection rectangle, treat this as a re-positioning operation.
                      */
                     if (!this.bigNumbers) {
-                        xCenter = this.xLeft + (colGrid * this.xInc);
-                        yCenter = this.yTop  - (rowGrid * this.yInc);
+                        xCenter = this.xLeft + (this.colStart * this.xInc);
+                        yCenter = this.yTop  - (this.rowStart * this.yInc);
                     } else {
-                        xCenter = this.xLeft.plus(this.xInc.times(colGrid));
-                        yCenter = this.yTop.minus(this.yInc.times(rowGrid));
+                        xCenter = this.xLeft.plus(this.xInc.times(this.colStart));
+                        yCenter = this.yTop.minus(this.yInc.times(this.rowStart));
                     }
                     this.prepGrid(xCenter, yCenter, this.dxCenter, this.dyCenter, true);
                 }
                 this.colSelect = this.rowSelect = -1;
+                this.widthSelect = this.heightSelect = 0;
             }
             else {
                 /*
-                 * Here, we assume the 'up' event simply signals the end of a selection operation; nothing to do (yet).
+                 * Here, we assume the RELEASE simply signals the end of a selection operation; nothing to do (yet).
                  */
-                if (DEBUG) this.aEvents.push("up event, selection x,y=" + this.colSelect + "," + this.rowSelect + " dx,dy=" + this.widthSelect + "," + this.heightSelect);
+                if (DEBUG) this.logDebug.push("release action x,y=" + this.colSelect + "," + this.rowSelect + " dx,dy=" + this.widthSelect + "," + this.heightSelect);
             }
             this.colStart = this.rowStart = -1;
             this.msStart = 0;
+        }
+        else {
+            if (DEBUG) this.logDebug.push("unrecognized action: " + action);
         }
 
         this.showSelection();
@@ -589,11 +621,6 @@ class Mandelbot {
      */
     prepGrid(xCenter, yCenter, dxCenter, dyCenter, fUpdate)
     {
-        if (DEBUG) {
-            console.log("prepGrid()");
-            for (let i = 0; i < this.aEvents.length; i++) console.log(this.aEvents[i]);
-            this.aEvents = [];
-        }
         if (!this.bigNumbers) {
             this.xCenter = xCenter;
             this.yCenter = yCenter;
@@ -605,7 +632,8 @@ class Mandelbot {
             this.yInc = (this.dyCenter * 2) / this.heightGrid;
             this.xUpdate = this.xLeft;
             this.yUpdate = this.yTop;
-        } else {
+        }
+        else {
             /*
              * Normally, if bigNumbers is true, the inputs will already be BigNumbers, but there is at least
              * one exception: when onReset() calls us with hard-coded numbers.  Since the BigNumber constructor
@@ -622,9 +650,12 @@ class Mandelbot {
             this.xUpdate = this.xLeft.plus(0);    // simple way of generating a new BigNumber with the same value
             this.yUpdate = this.yTop.plus(0);
         }
+
         this.colUpdate = this.rowUpdate = 0;
         this.nMaxIterations = Mandelbot.getMaxIterations(this.dxCenter, this.dyCenter);
+
         this.updateStatus("X: " + this.xCenter + ", Y: " + this.yCenter + ", D: +/-" + this.dxCenter + ", Max Iterations: " + this.nMaxIterations + (this.bigNumbers? " (BigNumbers)" : ""));
+
         if (fUpdate !== false) {
             this.updateHash(fUpdate);
             updateMandelbots(true);
@@ -651,7 +682,7 @@ class Mandelbot {
             while (nMaxIterationsTotal > 0 && this.colUpdate < this.widthGrid) {
                 let m = this.nMaxIterations;
                 let n = Mandelbot.isMandelbrot(this.xUpdate, this.yUpdate, m, this.aResults);
-                this.setGridPixel(this.rowUpdate, this.colUpdate, Mandelbot.getColor(this.colorScheme, this.aResults));
+                this.setGridPoint(this.rowUpdate, this.colUpdate, Mandelbot.getColor(this.colorScheme, this.aResults));
                 if (!this.bigNumbers) {
                     this.xUpdate += this.xInc;
                 } else {
@@ -803,13 +834,23 @@ class Mandelbot {
      */
     updateStatus(message)
     {
-        message = message || this.messageStatus;
+        message = message || this.messageStatus || "";
+        if (DEBUG) {
+            if (message) console.log(message);
+            for (let i = 0; i < this.logDebug.length; i++) {
+                console.log(this.logDebug[i]);
+                if (this.controlDebug) {
+                    if (message) message += "<br/>";
+                    message += this.logDebug[i];
+                }
+            }
+            this.logDebug = [];
+        }
         if (message) {
             if (!this.controlStatus) {
-                if (DEBUG) console.log(message);
                 this.messageStatus = message;
             } else {
-                this.controlStatus.textContent = message;
+                this.controlStatus.innerHTML = message;
                 this.messageStatus = "";
             }
         }
@@ -833,14 +874,14 @@ class Mandelbot {
     }
 
     /**
-     * setGridPixel(row, col, nRGB)
+     * setGridPoint(row, col, nRGB)
      *
      * @this {Mandelbot}
      * @param {number} row
      * @param {number} col
      * @param {number} nRGB
      */
-    setGridPixel(row, col, nRGB)
+    setGridPoint(row, col, nRGB)
     {
         let i = (row * this.widthGrid + col) * 4;
         this.imageGrid.data[i] = nRGB & 0xff;
@@ -871,8 +912,8 @@ class Mandelbot {
             let nIterationsInc = (nMaxIterationsPerNumber / 2)|0;
             do {
                 nIterationsInc *= 2;
-                let x = bigNumbers? new BigNumber(-0.5) : -0.5;
-                let y = bigNumbers? new BigNumber(0) : 0;
+                let x = bigNumbers? new BigNumber(Mandelbot.DEFAULT.XCENTER) : Mandelbot.DEFAULT.XCENTER;
+                let y = bigNumbers? new BigNumber(Mandelbot.DEFAULT.YCENTER) : Mandelbot.DEFAULT.YCENTER;
                 let n = Mandelbot.isMandelbrot(x, y, nIterationsStart + nIterationsInc);
                 msTotal = Date.now() - msStart;
                 if (msTotal >= msTimeslice) break;
@@ -896,7 +937,7 @@ class Mandelbot {
      *
      *      Mandelbrot set images may be created by sampling the complex numbers and determining, for each sample
      *      point c, whether the result of iterating the above function goes to infinity.  Treating the real and
-     *      imaginary parts of c as image coordinates (x + yi) on the complex plane, pixels may then be colored
+     *      imaginary parts of c as image coordinates (x + yi) on the complex plane, [points] may then be colored
      *      according to how rapidly the sequence z^2 + c diverges, with the color 0 (black) usually used for points
      *      where the sequence does not diverge.
      *
@@ -1154,18 +1195,33 @@ class Mandelbot {
     }
 }
 
+/*
+ * Various Mandelbot defaults, used primarily by the constructor, as well as the onReset() function
+ */
 Mandelbot.DEFAULT = {
     WGRID:      200,
     HGRID:      200,
-    XCENTER:    -0.5,
+    XCENTER:    -0.75,
     YCENTER:    0,
     DXCENTER:   1.5,
     DYCENTER:   1.5
 };
 
+/*
+ * Various Mandelbot actions; see processSelectAction()
+ */
+Mandelbot.ACTION = {
+    PRESS:      1,      // eg, an action triggered by a 'mousedown' or 'touchstart' event
+    MOVE:       2,      // eg, an action triggered by a 'mousemove' or 'touchmove' event
+    RELEASE:    3       // eg, an action triggered by a 'mouseup' (or 'mouseout') or 'touchend' event
+};
+
 Mandelbot.LOG_BASE = 1.0 / Math.log(2.0);
 Mandelbot.LOG_HALFBASE = Math.log(0.5) * Mandelbot.LOG_BASE;
 
+/*
+ * Various Mandelbot parameters that we support encoding in the hash ('#') portion of the URL; see updateHash()
+ */
 Mandelbot.KEY = {
     ID:         "id",
     XCENTER:    "x",
@@ -1175,6 +1231,9 @@ Mandelbot.KEY = {
     BIGNUMBERS: "big"
 };
 
+/*
+ * Various Mandelbot color schemes that we support
+ */
 Mandelbot['COLOR_SCHEME'] = {
     'BW':       0,  // B&W
     'HSV1':     1,  // HSV1
@@ -1186,6 +1245,7 @@ Mandelbot['COLOR_SCHEME'] = {
 Mandelbot['CONTROL_STATUS']   = "status";
 Mandelbot['CONTROL_RESET']    = "reset";
 Mandelbot['CONTROL_PREVIOUS'] = "previous";
+if (DEBUG) Mandelbot['CONTROL_DEBUG'] = "debug";
 
 nMaxIterationsPerTimeslice = Mandelbot.calibrate(0, 8);
 nMaxBigIterationsPerTimeslice = Mandelbot.calibrate(0, 8, true);

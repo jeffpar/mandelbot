@@ -8,8 +8,8 @@ A Mandelbot is a Mandelbrot image generator written in JavaScript.  The goals in
 - Build it using clear, well-documented code (see [mandelbot.js](src/mandelbot.js))
 - Experiment with third-party libraries (eg, the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
 	
-However, this is a work-in-progress, so the Mandelbot feature set is small.  I started the project as a diversion
-and an excuse to learn some new things, so bear with me.
+However, this is a work-in-progress, and the Mandelbot feature set is not fully defined.  The project started as a
+diversion and an excuse to learn some new things, so expect it to evolve.
 
 For history buffs, I've [archived](src/old/) an assortment of old related Pascal, C, and 8088 assembly-language code
 that I wrote over 30 years ago.  And the original [Scientific American](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
@@ -116,7 +116,7 @@ Mandelbots support the following properties:
 - *heightGrid*: the height of the grid canvas on which numbers will plotted, in pixels (default: heightView)
 - *widthStyle*: the width used to display the view canvas (default: auto)
 - *heightStyle*: the height used to display the view canvas (default: auto)
-- *xCenter*: the x coordinate of the center of the initial image (default: -0.5)
+- *xCenter*: the x coordinate of the center of the initial image (default: -0.75)
 - *yCenter*: the y coordinate of the center of the initial image (default: 0)
 - *dxCenter*: the distance from xCenter to the right and left sides of the initial image (default: 1.5)
 - *dyCenter*: the distance from yCenter to the top and bottom of the initial image (default: dxCenter)
