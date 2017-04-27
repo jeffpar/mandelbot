@@ -66,6 +66,9 @@ Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll
 - Disables Google Analytics
 - Disables minified JavaScript
 
+When running the original (un-minified) JavaScript, *DEBUG* is set to true, enabling *console.log()* operations,
+and support for a `Debug` button, which can be enabled for any Mandelbot that sets the *idDebug* property (see below).
+
 #### Notes for other operating systems (eg, Ubuntu)
 
 On a clean Ubuntu-based system (elementary OS), I needed to:
@@ -123,6 +126,7 @@ Mandelbots support the following properties:
 - *bigNumbers*: true to use BigNumbers for all floating-point calculations (default: false)
 - *colorScheme*: one of the Mandelbot.COLOR_SCHEME values (default: GRAY)
 - *idStatus*: a unique identifier for a text-based status control; if omitted, no control is generated
+- *idDebug*: a unique identifier for a `Debug` button control; if omitted, no control is generated
 - *idReset*: a unique identifier for a `Reset` button control; if omitted, no control is generated
 - *idPrevious*: a unique identifier for a `Previous` button control; if omitted, no control is generated
 
@@ -145,7 +149,8 @@ Generally, the only reason to alter the style settings is to make the view canva
 the width of the page changes).  This is commonly done by setting *widthStyle* to *100%*.
 
 Some Mandelbot IDs are associated with special styles; see [style.scss](/assets/css/style.scss).  For example,
-the Mandelbot on the [mandelbot.net](http://mandelbot.net/) home page uses ID "default", which triggers the following:
+the Mandelbot on the [mandelbot.net](http://mandelbot.net/) home page uses ID "default", which has been given the
+following CSS properties:
 
 	#default {
 	  background-color: #ffffff;
@@ -153,8 +158,13 @@ the Mandelbot on the [mandelbot.net](http://mandelbot.net/) home page uses ID "d
 	  background-size: 100% auto;
 	}
 
-This is done so that when other sites produce a thumbnail of the page, they will (hopefully) pick up the
-[default image](/assets/img/default.png) that Mandelbot initially produces.
+Originally, this was done so that when other sites produced a thumbnail of the home page, they would (hopefully) pick
+up the [default image](/assets/img/default.png) that the Mandelbot initially produces.  Unfortunately, that tactic
+didn't appear to work, so next I tried adding some metadata to the [default](/_layouts/default.html) page layout:
+
+	<meta property="og:image" content="/assets/img/default.png">
+
+but that seems to have been a flop as well.  Perhaps the image is too large.  Oh well.
 
 Operation
 ---------
