@@ -61,14 +61,15 @@ Those were resolved by:
 - Running `xcode-select --install` from a Terminal window
 
 Ordinarily, the Jekyll server could be started with a simple `bundle exec jekyll serve`, but including the
-[_developer.yml](_developer.yml) configuration file turns off certain production-only features; specifically, it:
+[_developer.yml](_developer.yml) configuration file set the *developer* property for all pages, disabling these
+production-only features:
 
-- Disables Google Analytics
-- Disables minified JavaScript
+- Google Analytics
+- Compiled ("minified") JavaScript
 
-When running the original (un-minified) JavaScript, *DEBUG* is set to true, enabling *console.log()* operations,
+When running with uncompiled JavaScript, *DEBUG* is set to true, enabling *console.log()* operations,
 and support for a `Debug` button, which can be enabled for any Mandelbot that sets the *idDebug* property (see below).
-At the moment, all the `Debug` control does is display the contents of the internal log (*logDebug*) in the page's
+At the moment, the `Debug` control only displays the contents of the internal log (*logDebug*) in the page's
 status control, which is handy when the JavaScript console isn't available.
 
 #### Notes for other operating systems (eg, Ubuntu)
@@ -117,8 +118,8 @@ at the top of the page (inside the Front Matter):
 
 	developer: true
 
-will load the uncompiled version of [mandelbot.js](src/mandelbot.js), as [this page](http://mandelbot.net/demos/uncompiled/)
-demonstrates.
+will load the uncompiled version of [mandelbot.js](src/mandelbot.js), as demonstrated on
+[this page](http://mandelbot.net/demos/uncompiled/).
 
 Mandelbots support the following properties:
 
@@ -136,7 +137,7 @@ Mandelbots support the following properties:
 - *bigNumbers*: true to use BigNumbers for all floating-point calculations (default: false)
 - *colorScheme*: one of the Mandelbot.COLOR_SCHEME values (default: GRAY)
 - *idStatus*: a unique identifier for a text-based status control; if omitted, no control is generated
-- *idDebug*: a unique identifier for a `Debug` button control (available only when using [_developer.yml](_developer.yml))
+- *idDebug*: a unique identifier for a `Debug` button control (available only when the *developer* property is **true**)
 - *idReset*: a unique identifier for a `Reset` button control; if omitted, no control is generated
 - *idPrevious*: a unique identifier for a `Previous` button control; if omitted, no control is generated
 
