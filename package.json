@@ -1,6 +1,6 @@
 {
   "name": "mandelbot",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Mandelbrot image generator written in JavaScript",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

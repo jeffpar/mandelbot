@@ -9,7 +9,7 @@
     <meta property="og:image" content="http://mandelbot.net/assets/img/default.png">
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
-    {% if site.developer %}
+    {% if page.developer or site.developer %}
       <script src="/src/bignumber/bignumber.js" type="text/javascript"></script>
       <script src="/src/mandelbot.js" type="text/javascript"></script>
     {% else %}

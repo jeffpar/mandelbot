@@ -57,7 +57,7 @@ Any property definition in the include tag overrides that property definition in
 
 <canvas class="mandelbot-view" id="{{ idView }}" width="{{ widthView }}" height="{{ heightView }}" style="{{ viewStyle }}"></canvas>
 
-{% if idDebug != '' and site.developer == true %}<button id="{{ idDebug }}" type="button">Debug</button>{% endif %}
+{% if idDebug != '' and page.developer or site.developer %}<button id="{{ idDebug }}" type="button">Debug</button>{% endif %}
 {% if idReset != '' %}<button id="{{ idReset }}" type="button">Reset</button>{% endif %}
 {% if idPrevious != '' %}<button id="{{ idPrevious }}" type="button" disabled="disabled">Previous</button>{% endif %}
 
@@ -66,7 +66,7 @@ Any property definition in the include tag overrides that property definition in
 <script type="text/javascript">
   var mandelbot = newMandelbot({{ parms }});
   if (mandelbot) {
-    {% if idDebug != '' and site.developer == true %}mandelbot.addControl(Mandelbot.CONTROL_DEBUG, "{{ idDebug }}");{% endif %}
+    {% if idDebug != '' and page.developer or site.developer %}mandelbot.addControl(Mandelbot.CONTROL_DEBUG, "{{ idDebug }}");{% endif %}
     {% if idReset != '' %}mandelbot.addControl(Mandelbot.CONTROL_RESET, "{{ idReset }}");{% endif %}
     {% if idPrevious != '' %}mandelbot.addControl(Mandelbot.CONTROL_PREVIOUS, "{{ idPrevious }}");{% endif %}
   }

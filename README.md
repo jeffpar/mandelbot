@@ -4,7 +4,7 @@ Mandelbot
 A Mandelbot is a Mandelbrot image generator written in JavaScript.  The goals include:
 
 - Make Mandelbots easy to use and configure (see [Configuration](#configuration))
-- Support multiple Mandelbots per page (see [Demo](http://mandelbot.net/demo/two/))
+- Support multiple Mandelbots per page (see [Demo](http://mandelbot.net/demos/two/))
 - Build it using clear, well-documented code (see [mandelbot.js](src/mandelbot.js))
 - Experiment with third-party libraries (eg, the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
 	
@@ -110,7 +110,7 @@ These "predefined" Mandelbots can then be added anywhere on the page, using just
 
 	{% include mandelbot.html id="mandelbot1" %}
 
-Examples of both "inline" and "predefined" Mandelbots can be found on the [Two Mandelbots](demo/two/INDEX.md) demo page.
+Examples of both "inline" and "predefined" Mandelbots can be found on the [demo page](demos/two/INDEX.md) for [Two Mandelbots](http://mandelbot.net/demos/two/).
 
 Mandelbots support the following properties:
 

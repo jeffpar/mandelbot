@@ -1,5 +1,5 @@
 ---
-permalink: /demo/two/
+permalink: /demos/two/
 mandelbots:
   - id: mandelbot1
     widthView: 400

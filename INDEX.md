@@ -15,7 +15,7 @@ mandelbots:
 Welcome to the Mandelbot Project
 --------------------------------
 
-A single Mandelbot is shown below.  Other [Demos](/demo/) include [Two Mandelbots](/demo/two/).
+A single Mandelbot is shown below.  Other [Demos](/demos/) include [Two Mandelbots](/demos/two/).
 
 Using a mouse or touch device, you can drag a rectangle around a region, and then click or tap inside the rectangle
 to begin drawing the new region.  Click or tap outside the rectangle to cancel.
