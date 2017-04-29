@@ -4,14 +4,14 @@ Mandelbot
 A Mandelbot is a Mandelbrot image generator written in JavaScript.  The goals include:
 
 - Make Mandelbots easy to use and configure (see [Configuration](#configuration))
-- Support multiple Mandelbots per page (see [Demo](http://mandelbot.net/demos/two/))
+- Support multiple Mandelbots per page (see [Demos](http://mandelbot.net/demos/))
 - Build it using clear, well-documented code (see [mandelbot.js](src/mandelbot.js))
 - Experiment with third-party libraries (eg, the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
 	
 However, this is a work-in-progress, and the Mandelbot feature set is not fully defined.  The project started as a
 diversion and an excuse to learn some new things, so expect it to evolve.
 
-For history buffs, I've [archived](src/old/) an assortment of old related Pascal, C, and 8088 assembly-language code
+For history buffs, I've [archived](/src/old/) an assortment of old related Pascal, C, and 8088 assembly-language code
 that I wrote over 30 years ago.  And the original [Scientific American](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
 article that helped spur a lot of early interest in the Mandelbrot Set (including my own) has been archived here as well.
 
@@ -90,7 +90,7 @@ Configuration
 -------------
 
 Mandelbots are added to pages on the [Jekyll](https://jekyllrb.com/)-based [Mandelbot website](http://mandelbot.net)
-using the [mandelbot.html](_includes/mandelbot.html) include file:
+using the [mandelbot.html](/_includes/mandelbot.html) include file:
 
 	{% include mandelbot.html id="mandelbot1" widthView="200" heightView="200" %}
 	
@@ -110,7 +110,15 @@ These "predefined" Mandelbots can then be added anywhere on the page, using just
 
 	{% include mandelbot.html id="mandelbot1" %}
 
-Examples of both "inline" and "predefined" Mandelbots can be found on the [demo page](demos/two/INDEX.md) for [Two Mandelbots](http://mandelbot.net/demos/two/).
+Examples of both "inline" and "predefined" Mandelbots can be found on the [demo page](/demos/two/INDEX.md) for [Two Mandelbots](http://mandelbot.net/demos/two/).
+
+There are also per-page properties that affect all Mandelbots on a page.  For example, setting *developer* to **true**
+at the top of the page (inside the Front Matter):
+
+	developer: true
+
+will load the uncompiled version of [mandelbot.js](src/mandelbot.js), as [this page](http://mandelbot.net/demos/uncompiled/)
+demonstrates.
 
 Mandelbots support the following properties:
 
@@ -216,5 +224,5 @@ All portions not licensed from other sources may be freely reused.  Any derivati
 along with the above copyright.
  
 Portions copyright 2012 Christian Stigen Larsen and licensed under [Apache License](http://www.apache.org/licenses/LICENSE-2.0),
-Version 2.0.  Those portions are clearly identified in [mandelbot.js](src/mandelbot.js) and must be accompanied by the same Apache
+Version 2.0.  Those portions are clearly identified in [mandelbot.js](/src/mandelbot.js) and must be accompanied by the same Apache
 License if they are redistributed.
