@@ -118,8 +118,8 @@ at the top of the page (inside the Front Matter):
 
 	developer: true
 
-will load the uncompiled version of [mandelbot.js](src/mandelbot.js), as demonstrated on
-[this page](http://mandelbot.net/demos/uncompiled/).
+will load the uncompiled version of [mandelbot.js](src/mandelbot.js), as shown on the
+[demo page](/demos/uncompiled/INDEX.md) for [Mandelbot (Uncompiled)](http://mandelbot.net/demos/uncompiled/).
 
 Mandelbots support the following properties:
 
