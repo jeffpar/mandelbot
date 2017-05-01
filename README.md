@@ -110,7 +110,8 @@ These "predefined" Mandelbots can then be added anywhere on the page, using just
 
 	{% include mandelbot.html id="mandelbot1" %}
 
-Examples of both "inline" and "predefined" Mandelbots can be found on the [demo page](/demos/multiple/INDEX.md) for [Multiple Mandelbots](http://mandelbot.net/demos/multiple/).
+Examples of both "inline" and "predefined" Mandelbots can be found on the [demo page](/demos/multiple/INDEX.md) for
+[Multiple Mandelbots](http://mandelbot.net/demos/multiple/).
 
 There are also per-page properties that affect all Mandelbots on a page.  For example, setting *developer* to **true**
 at the top of the page (inside the Front Matter):
@@ -118,7 +119,7 @@ at the top of the page (inside the Front Matter):
 	developer: true
 
 will load the uncompiled version of [mandelbot.js](src/mandelbot.js), as shown on the
-[demo page](/demos/uncompiled/INDEX.md) for [Mandelbot (Uncompiled)](http://mandelbot.net/demos/uncompiled/).
+[demo page](/demos/uncompiled/INDEX.md) for [Uncompiled Mandelbot](http://mandelbot.net/demos/uncompiled/).
 
 Mandelbots support the following properties:
 
