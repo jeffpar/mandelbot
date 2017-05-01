@@ -3,7 +3,6 @@ permalink: /
 mandelbots:
   - id: default
     widthView: 1024
-    heightView: 1024
     widthStyle: 100%
     palette: blue
     bigNumbers: false

@@ -93,7 +93,7 @@ Configuration
 Mandelbots are added to pages on the [Jekyll](https://jekyllrb.com/)-based [Mandelbot website](http://mandelbot.net)
 using the [mandelbot.html](/_includes/mandelbot.html) include file:
 
-	{% include mandelbot.html id="mandelbot1" widthView="200" heightView="200" %}
+	{% include mandelbot.html id="mandelbot1" widthView="200" %}
 	
 For pages containing multiple Mandelbots, it may be more convenient to define each Mandelbot's configuration parameters
 at the top of the page, inside the page's [Jekyll Front Matter](https://jekyllrb.com/docs/frontmatter/):
@@ -103,7 +103,6 @@ at the top of the page, inside the page's [Jekyll Front Matter](https://jekyllrb
 	mandelbots:
 	  - id: mandelbot1
 	    widthView: 200
-	    heightView: 200
 	    ...
 	---
 
@@ -125,7 +124,7 @@ Mandelbots support the following properties:
 
 - *id*: the unique *id* to use for the generated `<canvas>` element
 - *widthView*: the width of the view canvas, in pixels (default: 200)
-- *heightView*: the height of the view canvas, in pixels (default: 200)
+- *heightView*: the height of the view canvas, in pixels (default: widthView)
 - *widthGrid*: the width of the grid canvas on which numbers will plotted, in pixels (default: widthView)
 - *heightGrid*: the height of the grid canvas on which numbers will plotted, in pixels (default: heightView)
 - *widthStyle*: the width used to display the view canvas (default: auto)

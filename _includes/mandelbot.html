@@ -7,7 +7,7 @@ Every Mandelbot must have a unique id:
 Mandelbots may also have the following properties:
 
   widthView (default: '200')
-  heightView (default: '200')
+  heightView (default: widthView)
   widthGrid (default: widthView)
   heightGrid (default: heightView)
   widthStyle (default: 'auto')
@@ -38,7 +38,7 @@ Any property definition in the include tag overrides that property definition in
 
 {% assign idView = include.id | default: 'default' %}
 {% assign widthView = include.widthView | default: mandelbot.widthView | default: '200' %}
-{% assign heightView = include.heightView | default: mandelbot.heightView | default: '200' %}
+{% assign heightView = include.heightView | default: mandelbot.heightView | default: widthView %}
 {% assign widthGrid = include.widthGrid | default: mandelbot.widthGrid | default: widthView %}
 {% assign heightGrid = include.heightGrid | default: mandelbot.heightGrid | default: heightView %}
 {% assign widthStyle = include.widthStyle | default: mandelbot.widthStyle | default: 'auto' %}
