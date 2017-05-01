@@ -17,7 +17,9 @@
 // import * as BigNumber from "./bignumber/bignumber";
 
 /**
- * DEBUG is set to false by the Closure Compiler to disable debug-only code, assertions, etc.
+ * DEBUG
+ *
+ * Set to false by the Closure Compiler to disable debug-only code, assertions, etc.
  *
  * @define {boolean}
  */
