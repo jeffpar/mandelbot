@@ -111,7 +111,7 @@ These "predefined" Mandelbots can then be added anywhere on the page, using just
 
 	{% include mandelbot.html id="mandelbot1" %}
 
-Examples of both "inline" and "predefined" Mandelbots can be found on the [demo page](/demos/two/INDEX.md) for [Two Mandelbots](http://mandelbot.net/demos/two/).
+Examples of both "inline" and "predefined" Mandelbots can be found on the [demo page](/demos/multiple/INDEX.md) for [Multiple Mandelbots](http://mandelbot.net/demos/multiple/).
 
 There are also per-page properties that affect all Mandelbots on a page.  For example, setting *developer* to **true**
 at the top of the page (inside the Front Matter):
@@ -130,7 +130,7 @@ Mandelbots support the following properties:
 - *heightGrid*: the height of the grid canvas on which numbers will plotted, in pixels (default: heightView)
 - *widthStyle*: the width used to display the view canvas (default: auto)
 - *heightStyle*: the height used to display the view canvas (default: auto)
-- *xCenter*: the x coordinate of the center of the initial image (default: -0.75)
+- *xCenter*: the x coordinate of the center of the initial image (default: -0.65)
 - *yCenter*: the y coordinate of the center of the initial image (default: 0)
 - *dxCenter*: the distance from xCenter to the right and left sides of the initial image (default: 1.5)
 - *dyCenter*: the distance from yCenter to the top and bottom of the initial image (default: dxCenter)

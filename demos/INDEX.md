@@ -7,5 +7,5 @@ Mandelbot Demos
 ---------------
 
 * [Circular View](circular/)
-* [Two Mandelbots](two/)
+* [Multiple Mandelbots](multiple/)
 * [Uncompiled Mandelbot](uncompiled/)

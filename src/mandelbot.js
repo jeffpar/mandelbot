@@ -103,7 +103,7 @@ class Mandelbot {
      * @this {Mandelbot}
      * @param {number} [widthGrid] (grid canvas width; default is view canvas width or 200)
      * @param {number} [heightGrid] (grid canvas height; default is view canvas height or 200)
-     * @param {number|string} [xCenter] (the x coordinate of the center of the image; default is -0.75)
+     * @param {number|string} [xCenter] (the x coordinate of the center of the image; default is -0.65)
      * @param {number|string} [yCenter] (the y coordinate of the center of the image; default is 0)
      * @param {number|string} [dxCenter] (the distance from xCenter to the sides of the image; default is 1.5)
      * @param {number|string} [dyCenter] (the distance from yCenter to the top/bottom of the image; default is 1.5)
@@ -124,8 +124,8 @@ class Mandelbot {
         this.palette = /** @type {number} */ (this.getURLValue(Mandelbot.KEY.PALETTE, palette || Mandelbot['PALETTE']['GRAY']));
         this.shape = shape || Mandelbot['SHAPE']['RECT'];
         /*
-         * TODO: Allow the caller to specify the background color; useful if the page contains a non-rectangular view
-         * or non-default color.
+         * TODO: Allow the caller to specify the background color; useful if the page contains a non-rectangular
+         * view or non-default color.
          */
         this.colorBgnd = 0xffffff;
         this.aResults = [0, 0, 0, 0];
@@ -606,14 +606,24 @@ class Mandelbot {
     /**
      * hideSelection()
      *
-     * This removes any selection rectangle from the grid by simply redrawing all image data onto the grid.
+     * This removes any selection rectangle from the grid by simply redrawing all image data onto the grid,
+     * after first ensuring that none of the grid positions contain transparent values (ie, zero alpha).
+     *
+     * There are many optimizations we could perform here to reduce the amount grid canvas we are touching.
+     * For example, we could re-enable those commented-out putImageData() parameters; however, it's not quite
+     * that simple, because the strokeRect() performed by showSelection() actually touches more pixels than that.
      *
      * @this {Mandelbot}
      */
     hideSelection()
     {
         if (this.colSelect >= 0) {
-            this.contextGrid.putImageData(this.imageGrid, 0, 0);
+            if (this.fZeroAlpha) {
+                let n = this.widthGrid * this.heightGrid * 4;
+                for (let i = 0; i < n; i += 4) this.imageGrid.data[i + 3] = 0xff;
+                this.fZeroAlpha = false;
+            }
+            this.contextGrid.putImageData(this.imageGrid, 0, 0 /*, this.colSelect, this.rowSelect, this.widthSelect, this.heightSelect */);
         }
     }
 
@@ -689,14 +699,23 @@ class Mandelbot {
         }
         this.updateRow(0);
         /*
-         * For any non-rectangular shape, it's best to (re)initialize the entire grid with the background color,
-         * to avoid drawing any undefined pixels onto the view canvas.
+         * It's best to (re)initialize the entire grid with the background color, so that if we need to erase
+         * a selection rectangle from a portion of the grid that hasn't been calculated yet -- either because
+         * shape is non-zero (ie, not a rectangle) or because the calculation process hasn't reached the bottom
+         * of the grid yet -- that erasure can easily be done by blasting the entire grid image onto the grid
+         * canvas; see hideSelection() for details.
+         *
+         * One wrinkle you'll notice here is that we're calling setGridPoint() with the alpha parameter set to
+         * zero, which means all uncalculated points are initially transparent.  We do this so that, as long
+         * as you don't make any selections, all grid positions outside the calculation area remain transparent,
+         * allowing you to save the final image with transparency intact.  However, the first time you make a
+         * selection, hideSelection() will write non-zero (0xff) alpha values into all grid positions, ensuring
+         * that any selection rectangle will be properly erased.
          */
-        if (this.shape) {
-            for (let row = 0; row < this.heightGrid; row++) {
-                for (let col = 0; col < this.widthGrid; col++) {
-                    this.setGridPoint(col, row, this.colorBgnd);
-                }
+        this.fZeroAlpha = true;
+        for (let row = 0; row < this.heightGrid; row++) {
+            for (let col = 0; col < this.widthGrid; col++) {
+                this.setGridPoint(col, row, this.colorBgnd, 0);
             }
         }
         this.nMaxIterations = Mandelbot.getMaxIterations(this.dxCenter, this.dyCenter);
@@ -1000,20 +1019,21 @@ class Mandelbot {
     }
 
     /**
-     * setGridPoint(col, row, nRGB)
+     * setGridPoint(col, row, rgb, alpha)
      *
      * @this {Mandelbot}
      * @param {number} col
      * @param {number} row
-     * @param {number} nRGB
+     * @param {number} rgb
+     * @param {number} [alpha]
      */
-    setGridPoint(col, row, nRGB)
+    setGridPoint(col, row, rgb, alpha = 0xff)
     {
         let i = (col + row * this.widthGrid) * 4;
-        this.imageGrid.data[i] = nRGB & 0xff;
-        this.imageGrid.data[i+1] = (nRGB >> 8) & 0xff;
-        this.imageGrid.data[i+2] = (nRGB >> 16) & 0xff;
-        this.imageGrid.data[i+3] = 0xff;
+        this.imageGrid.data[i] = rgb & 0xff;
+        this.imageGrid.data[i+1] = (rgb >> 8) & 0xff;
+        this.imageGrid.data[i+2] = (rgb >> 16) & 0xff;
+        this.imageGrid.data[i+3] = alpha;
     }
 
     /**
@@ -1205,7 +1225,7 @@ class Mandelbot {
      */
     static getColor(palette, aResults)
     {
-        let nRGB = 0;           // 0 is black (0x000000), used for numbers in the Mandelbrot set
+        let rgb = 0;            // 0 is black (0x000000), used for numbers in the Mandelbrot set
 
         if (aResults[1]) {      // if the number is NOT in the Mandelbrot set, then choose another color
 
@@ -1215,28 +1235,28 @@ class Mandelbot {
             switch (palette) {
             case Mandelbot['PALETTE']['BW']:
             default:
-                nRGB = -1;      // -1 is white (0xffffff)
+                rgb = -1;       // -1 is white (0xffffff)
                 break;
             case Mandelbot['PALETTE']['GRAY']:
                 v = Math.floor(512.0 * v / aResults[0]);
                 if (v > 0xff) v = 0xff;
-                nRGB = v | (v << 8) | (v << 16);
+                rgb = v | (v << 8) | (v << 16);
                 break;
             case Mandelbot['PALETTE']['BRIGHT']:
-                nRGB = Mandelbot.getRGBFromHSV(360 * v / aResults[0], 1.0, 1.0);
+                rgb = Mandelbot.getRGBFromHSV(360 * v / aResults[0], 1.0, 1.0);
                 break;
             case Mandelbot['PALETTE']['MUTED']:
                 fSwap = false;
                 /* falls through */
             case Mandelbot['PALETTE']['BLUE']:
-                nRGB = Mandelbot.getRGBFromHSV(360 * v / aResults[0], 1.0, 10.0 * v / aResults[0]);
+                rgb = Mandelbot.getRGBFromHSV(360 * v / aResults[0], 1.0, 10.0 * v / aResults[0]);
                 if (fSwap) {    // swap red and blue bytes
-                    nRGB = (nRGB & 0xff00ff00) | ((nRGB >> 16) & 0xff) | ((nRGB & 0xff) << 16);
+                    rgb = (rgb & 0xff00ff00) | ((rgb >> 16) & 0xff) | ((rgb & 0xff) << 16);
                 }
                 break;
             }
         }
-        return nRGB;
+        return rgb;
     }
 
     /**
@@ -1327,7 +1347,7 @@ class Mandelbot {
 Mandelbot.DEFAULT = {
     WGRID:      200,
     HGRID:      200,
-    XCENTER:    -0.75,
+    XCENTER:    -0.65,
     YCENTER:    0,
     DXCENTER:   1.5,
     DYCENTER:   1.5
