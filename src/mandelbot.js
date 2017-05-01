@@ -121,7 +121,7 @@ class Mandelbot {
         if (DEBUG) this.logDebug = [];
         this.getURLHash(idView);
         this.bigNumbers = !!this.getURLValue(Mandelbot.KEY.BIGNUMBERS, bigNumbers || false);
-        this.palette = /** @type {number} */ (this.getURLValue(Mandelbot.KEY.PALETTE, palette || Mandelbot['PALETTE']['GRAY'], false));
+        this.palette = /** @type {number} */ (this.getURLValue(Mandelbot.KEY.PALETTE, palette || Mandelbot['PALETTE']['GRAY']));
         this.shape = shape || Mandelbot['SHAPE']['RECT'];
         /*
          * TODO: Allow the caller to specify the background color; useful if the page contains a non-rectangular view
@@ -671,8 +671,6 @@ class Mandelbot {
             this.xInc = (this.dxCenter * 2) / this.widthGrid;
             this.yTop = this.yCenter + this.dyCenter;
             this.yInc = (this.dyCenter * 2) / this.heightGrid;
-            this.xUpdate = this.xLeft;
-            this.yUpdate = this.yTop;
         }
         else {
             /*
@@ -688,9 +686,8 @@ class Mandelbot {
             this.xInc = this.dxCenter.times(2).dividedBy(this.widthGrid).round(20);
             this.yTop = this.yCenter.plus(this.dyCenter);
             this.yInc = this.dyCenter.times(2).dividedBy(this.heightGrid).round(20);
-            this.xUpdate = this.xLeft.plus(0);    // simple way of generating a new BigNumber with the same value
-            this.yUpdate = this.yTop.plus(0);
         }
+        this.updateRow(0);
         /*
          * For any non-rectangular shape, it's best to (re)initialize the entire grid with the background color,
          * to avoid drawing any undefined pixels onto the view canvas.
@@ -702,7 +699,6 @@ class Mandelbot {
                 }
             }
         }
-        this.updateRow(0);
         this.nMaxIterations = Mandelbot.getMaxIterations(this.dxCenter, this.dyCenter);
         this.updateStatus("X: " + this.xCenter + ", Y: " + this.yCenter + ", D: +/-" + this.dxCenter + ", Max Iterations: " + this.nMaxIterations + (this.bigNumbers? " (BigNumbers)" : ""));
         if (fUpdate !== false) {
@@ -766,14 +762,27 @@ class Mandelbot {
         if (!this.shape) {
             this.colUpdate = 0;
             this.widthUpdate = this.widthGrid;
-            this.xUpdate = this.xLeft;
         } else {
             let r = Math.trunc(this.heightGrid / 2);
             let y = r - this.rowUpdate;
             let x = Math.round(Math.sqrt((r * r) - (y * y)));
             this.colUpdate = Math.trunc(this.widthGrid / 2) - x;
             this.widthUpdate = x * 2;
+        }
+        if (!this.bigNumbers) {
             this.xUpdate = this.xLeft + this.xInc * this.colUpdate;
+            if (!row) {
+                this.yUpdate = this.yTop;
+            } else {
+                this.yUpdate -= this.yInc;
+            }
+        } else {
+            this.xUpdate = this.xLeft.plus(this.xInc.times(this.colUpdate));
+            if (!row) {
+                this.yUpdate = this.yTop.plus(0);
+            } else {
+                this.yUpdate = this.yUpdate.minus(this.yInc);
+            }
         }
     }
 
@@ -809,12 +818,6 @@ class Mandelbot {
             }
             if (nMaxIterationsTotal <= 0) break;
             this.updateRow(this.rowUpdate + 1);
-            if (!this.bigNumbers) {
-                this.yUpdate -= this.yInc;
-            } else {
-                this.xUpdate = this.xLeft.plus(0);
-                this.yUpdate = this.yUpdate.minus(this.yInc);
-            }
             heightDirty++;
             colDirty = 0;
             widthDirty = this.widthGrid;
