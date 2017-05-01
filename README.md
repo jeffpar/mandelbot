@@ -135,7 +135,8 @@ Mandelbots support the following properties:
 - *dxCenter*: the distance from xCenter to the right and left sides of the initial image (default: 1.5)
 - *dyCenter*: the distance from yCenter to the top and bottom of the initial image (default: dxCenter)
 - *bigNumbers*: true to use BigNumbers for all floating-point calculations (default: false)
-- *colorScheme*: one of the Mandelbot.COLOR_SCHEME values (default: GRAY)
+- *palette*: one of the Mandelbot.PALETTE values (default: gray)
+- *shape*: one of the Mandelbot.SHAPE values (default: rect)
 - *idStatus*: a unique identifier for a text-based status control; if omitted, no control is generated
 - *idDebug*: a unique identifier for a `Debug` button control (available only when the *developer* property is **true**)
 - *idReset*: a unique identifier for a `Reset` button control; if omitted, no control is generated
@@ -170,9 +171,8 @@ following CSS properties:
 	}
 
 Originally, this was done so that when other sites produced a thumbnail of the home page, they would (hopefully) pick
-up the [default image](/assets/img/default.png) that the Mandelbot initially produces.  Unfortunately, that tactic
-was a failure, so I took a more conventional approach and added some metadata to the [default](/_layouts/default.html)
-page template:
+up the [default image](/assets/img/default.png) that the Mandelbot initially produces.  However, some sites (like
+Facebook) also require adding some metadata to the [default](/_layouts/default.html) page template:
 
 	<meta property="og:image" content="http://mandelbot.net/assets/img/default.png">
 

@@ -55,7 +55,9 @@ let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibra
  * @property {number|BigNumber} yCenter
  * @property {number|BigNumber} dxCenter
  * @property {number|BigNumber} dyCenter
- * @property {number} colorScheme
+ * @property {number} palette
+ * @property {number} shape
+ * @property {number} colorBgnd
  * @property {Array.<number>} aResults
  * @property {Array.<string>} aPrevious
  * @property {HTMLCanvasElement} canvasView
@@ -70,6 +72,7 @@ let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibra
  * @property {number} nMaxIterations
  * @property {number} colUpdate
  * @property {number} rowUpdate
+ * @property {number} widthUpdate
  * @property {number|BigNumber} xLeft
  * @property {number|BigNumber} xInc
  * @property {number|BigNumber} yTop
@@ -79,7 +82,7 @@ let nMaxBigIterationsPerTimeslice;      // updated by a one-time call to calibra
  */
 class Mandelbot {
     /**
-     * Mandelbot(widthGrid, heightGrid, xCenter, yCenter, dxCenter, dyCenter, bigNumbers, colorScheme, idView, idStatus)
+     * Mandelbot(widthGrid, heightGrid, xCenter, yCenter, dxCenter, dyCenter, bigNumbers, palette, shape, idView, idStatus)
      *
      * The constructor records information about the View canvas (eg, its dimensions, 2D context, etc), and then
      * creates the internal Grid canvas using the supplied dimensions, which usually match the View canvas dimensions
@@ -105,19 +108,26 @@ class Mandelbot {
      * @param {number|string} [dxCenter] (the distance from xCenter to the sides of the image; default is 1.5)
      * @param {number|string} [dyCenter] (the distance from yCenter to the top/bottom of the image; default is 1.5)
      * @param {boolean} [bigNumbers] (true to use BigNumbers for floating-point calculations; default is false)
-     * @param {number} [colorScheme] (one of the Mandelbot.COLOR_SCHEME values; default is GRAY)
+     * @param {number} [palette] (one of the Mandelbot.PALETTE values; default is GRAY)
+     * @param {number} [shape] (one of the Mandelbot.SHAPE values; default is RECT)
      * @param {string} [idView] (the id of an existing view canvas, if any)
      * @param {string} [idStatus] (the id of an existing status control, if any)
      */
     constructor(widthGrid = 0, heightGrid = 0,
-                xCenter = Mandelbot.DEFAULT.XCENTER, yCenter = Mandelbot.DEFAULT.YCENTER,
-                dxCenter = Mandelbot.DEFAULT.DXCENTER, dyCenter = Mandelbot.DEFAULT.DYCENTER,
-                bigNumbers, colorScheme, idView, idStatus)
+                xCenter   = Mandelbot.DEFAULT.XCENTER,  yCenter  = Mandelbot.DEFAULT.YCENTER,
+                dxCenter  = Mandelbot.DEFAULT.DXCENTER, dyCenter = Mandelbot.DEFAULT.DYCENTER, bigNumbers,
+                palette, shape, idView, idStatus)
     {
         if (DEBUG) this.logDebug = [];
         this.getURLHash(idView);
         this.bigNumbers = !!this.getURLValue(Mandelbot.KEY.BIGNUMBERS, bigNumbers || false);
-        this.colorScheme = (colorScheme !== undefined? colorScheme : Mandelbot['COLOR_SCHEME']['GRAY']);
+        this.palette = /** @type {number} */ (this.getURLValue(Mandelbot.KEY.PALETTE, palette || Mandelbot['PALETTE']['GRAY'], false));
+        this.shape = shape || Mandelbot['SHAPE']['RECT'];
+        /*
+         * TODO: Allow the caller to specify the background color; useful if the page contains a non-rectangular view
+         * or non-default color.
+         */
+        this.colorBgnd = 0xffffff;
         this.aResults = [0, 0, 0, 0];
         this.aPrevious = [];
         try {
@@ -128,8 +138,8 @@ class Mandelbot {
              */
             this.addControl(Mandelbot['CONTROL_STATUS'], idStatus);
             if (this.initView(idView) && this.initGrid(widthGrid || this.widthView, heightGrid || this.heightView)) {
-                this.xReset = this.getURLValue(Mandelbot.KEY.XCENTER, this.xDefault = xCenter);
-                this.yReset = this.getURLValue(Mandelbot.KEY.YCENTER, this.yDefault = yCenter);
+                this.xReset  = this.getURLValue(Mandelbot.KEY.XCENTER,  this.xDefault = xCenter, false);
+                this.yReset  = this.getURLValue(Mandelbot.KEY.YCENTER,  this.yDefault = yCenter, false);
                 this.dxReset = this.getURLValue(Mandelbot.KEY.DXCENTER, this.dxDefault = dxCenter, true);
                 this.dyReset = this.getURLValue(Mandelbot.KEY.DYCENTER, this.dyDefault = dyCenter, true);
                 this.prepGrid(this.xReset, this.yReset, this.dxReset, this.dyReset, false);
@@ -173,7 +183,7 @@ class Mandelbot {
                     mandelbot.updatePrevious();
                     if (mandelbot.xCenter == mandelbot.xReset && mandelbot.yCenter == mandelbot.yReset) {
                         if (mandelbot.dxCenter == mandelbot.dxReset && mandelbot.dyCenter == mandelbot.dyReset) {
-                            mandelbot.prepGrid(Mandelbot.DEFAULT.XCENTER, Mandelbot.DEFAULT.YCENTER,
+                            mandelbot.prepGrid(Mandelbot.DEFAULT.XCENTER,  Mandelbot.DEFAULT.YCENTER,
                                                Mandelbot.DEFAULT.DXCENTER, Mandelbot.DEFAULT.DYCENTER);
                             return;
                         }
@@ -191,8 +201,9 @@ class Mandelbot {
                     if (hash != null) {
                         mandelbot.getURLHash(mandelbot.idView, hash);
                         mandelbot.bigNumbers = !!mandelbot.getURLValue(Mandelbot.KEY.BIGNUMBERS, mandelbot.bigNumbers);
-                        let x  = mandelbot.getURLValue(Mandelbot.KEY.XCENTER,  mandelbot.xDefault);
-                        let y  = mandelbot.getURLValue(Mandelbot.KEY.YCENTER,  mandelbot.yDefault);
+                        mandelbot.palette = /** @type {number} */ (mandelbot.getURLValue(Mandelbot.KEY.PALETTE, mandelbot.palette));
+                        let x  = mandelbot.getURLValue(Mandelbot.KEY.XCENTER,  mandelbot.xDefault, false);
+                        let y  = mandelbot.getURLValue(Mandelbot.KEY.YCENTER,  mandelbot.yDefault, false);
                         let dx = mandelbot.getURLValue(Mandelbot.KEY.DXCENTER, mandelbot.dxDefault, true);
                         let dy = mandelbot.getURLValue(Mandelbot.KEY.DYCENTER, mandelbot.dyDefault, true);
                         mandelbot.prepGrid(x, y, dx, dy);
@@ -680,15 +691,89 @@ class Mandelbot {
             this.xUpdate = this.xLeft.plus(0);    // simple way of generating a new BigNumber with the same value
             this.yUpdate = this.yTop.plus(0);
         }
-
-        this.colUpdate = this.rowUpdate = 0;
+        /*
+         * For any non-rectangular shape, it's best to (re)initialize the entire grid with the background color,
+         * to avoid drawing any undefined pixels onto the view canvas.
+         */
+        if (this.shape) {
+            for (let row = 0; row < this.heightGrid; row++) {
+                for (let col = 0; col < this.widthGrid; col++) {
+                    this.setGridPoint(col, row, this.colorBgnd);
+                }
+            }
+        }
+        this.updateRow(0);
         this.nMaxIterations = Mandelbot.getMaxIterations(this.dxCenter, this.dyCenter);
-
         this.updateStatus("X: " + this.xCenter + ", Y: " + this.yCenter + ", D: +/-" + this.dxCenter + ", Max Iterations: " + this.nMaxIterations + (this.bigNumbers? " (BigNumbers)" : ""));
-
         if (fUpdate !== false) {
             this.updateHash(fUpdate);
             updateMandelbots(true);
+        }
+    }
+
+    /**
+     * updateRow(row)
+     *
+     * In a rectangular world, this merely needs to set colUpdate to zero and widthUpdate to widthGrid.
+     *
+     * In a circular world, we must calculate the starting colUpdate appropriate for the current row and
+     * then update widthUpdate to match.  Imagine we have a grid that's 30x30, so the corresponding grid radius
+     * is 15 units.  For each row, we must determine the point on the grid where the grid radius intersects
+     * the current grid row, and begin calculating at that point.
+     *
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . * * * * * * * * * * * . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . C . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *      . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+     *
+     * On the above grid, the coordinates of C are (0,0), so if we're working on the second row from the top,
+     * it has the equation y = 14, and the equation representing the circular boundary intersecting that row is
+     * x^2 + y^2 = 15^2.  The value for x is therefore sqrt(15^2 - y^2), or sqrt(225 - 196), or +/-5.39, which
+     * we round to +/-5.
+     *
+     * @this {Mandelbot}
+     * @param {number} row
+     */
+    updateRow(row)
+    {
+        this.rowUpdate = row;
+        if (!this.shape) {
+            this.colUpdate = 0;
+            this.widthUpdate = this.widthGrid;
+            this.xUpdate = this.xLeft;
+        } else {
+            let r = Math.trunc(this.heightGrid / 2);
+            let y = r - this.rowUpdate;
+            let x = Math.round(Math.sqrt((r * r) - (y * y)));
+            this.colUpdate = Math.trunc(this.widthGrid / 2) - x;
+            this.widthUpdate = x * 2;
+            this.xUpdate = this.xLeft + this.xInc * this.colUpdate;
         }
     }
 
@@ -709,32 +794,30 @@ class Mandelbot {
         let widthDirty = 0, heightDirty = 0;
         let nMaxIterationsTotal = Math.floor((this.bigNumbers? nMaxBigIterationsPerTimeslice : nMaxIterationsPerTimeslice) / activeMandelbots.length);
         while (this.rowUpdate < this.heightGrid) {
-            while (nMaxIterationsTotal > 0 && this.colUpdate < this.widthGrid) {
+            while (nMaxIterationsTotal > 0 && this.widthUpdate-- > 0) {
                 let m = this.nMaxIterations;
                 let n = Mandelbot.isMandelbrot(this.xUpdate, this.yUpdate, m, this.aResults);
-                this.setGridPoint(this.rowUpdate, this.colUpdate, Mandelbot.getColor(this.colorScheme, this.aResults));
+                this.setGridPoint(this.colUpdate++, this.rowUpdate, Mandelbot.getColor(this.palette, this.aResults));
                 if (!this.bigNumbers) {
                     this.xUpdate += this.xInc;
                 } else {
                     this.xUpdate = this.xUpdate.plus(this.xInc);
                 }
-                this.colUpdate++;
                 if (!heightDirty) widthDirty++;
                 nMaxIterationsTotal -= (m - n);
                 fUpdated = true;
             }
             if (nMaxIterationsTotal <= 0) break;
-            this.colUpdate = 0;
+            this.updateRow(this.rowUpdate + 1);
             if (!this.bigNumbers) {
-                this.xUpdate = this.xLeft;
                 this.yUpdate -= this.yInc;
             } else {
                 this.xUpdate = this.xLeft.plus(0);
                 this.yUpdate = this.yUpdate.minus(this.yInc);
             }
-            this.rowUpdate++;
             heightDirty++;
-            colDirty = 0; widthDirty = this.widthGrid;
+            colDirty = 0;
+            widthDirty = this.widthGrid;
         }
         if (fUpdated) {
             if (this.colUpdate > 0) heightDirty++;
@@ -777,6 +860,17 @@ class Mandelbot {
      *
      * If the specified value has an override in hashTable, use it; otherwise, use the given initial value.
      *
+     * If init is a boolean, then the hash is evaluated as a boolean, but the return value is always a number (0 or 1);
+     * we don't want to the muddy the waters by making boolean another possible return type, so callers will generally
+     * apply "!!" to the result to produce a real boolean.
+     *
+     * If abs is defined (true or false), then the return value is either a number or a BigNumber, as appropriate;
+     * if abs is NOT defined, the return value is ALWAYS a number.  For example, abs is omitted from keys like PALETTE,
+     * which is always a number (never a BigNumber).
+     *
+     * Unfortunately, the Closure Compiler isn't smart enough to realize that whenever abs is omitted, the return
+     * type is always number, so those callers will want to coerce (cast) the return value to number.
+     *
      * @this {Mandelbot}
      * @param {string} key
      * @param {number|string|boolean} init
@@ -791,7 +885,7 @@ class Mandelbot {
         }
         let value;
         init = hash || init;
-        if (this.bigNumbers) {
+        if (this.bigNumbers && abs !== undefined) {
             value = new BigNumber(init);
             if (abs) value = value.abs();
         } else {
@@ -833,6 +927,7 @@ class Mandelbot {
              * so now we always encode.
              */
             hash += '&' + Mandelbot.KEY.BIGNUMBERS + '=' + this.bigNumbers;
+            hash += '&' + Mandelbot.KEY.PALETTE + '=' + this.palette;
             location.hash = hash;
         }
     }
@@ -902,16 +997,16 @@ class Mandelbot {
     }
 
     /**
-     * setGridPoint(row, col, nRGB)
+     * setGridPoint(col, row, nRGB)
      *
      * @this {Mandelbot}
-     * @param {number} row
      * @param {number} col
+     * @param {number} row
      * @param {number} nRGB
      */
-    setGridPoint(row, col, nRGB)
+    setGridPoint(col, row, nRGB)
     {
-        let i = (row * this.widthGrid + col) * 4;
+        let i = (col + row * this.widthGrid) * 4;
         this.imageGrid.data[i] = nRGB & 0xff;
         this.imageGrid.data[i+1] = (nRGB >> 8) & 0xff;
         this.imageGrid.data[i+2] = (nRGB >> 16) & 0xff;
@@ -1095,17 +1190,17 @@ class Mandelbot {
     }
 
     /**
-     * getColor(colorScheme, aResults)
+     * getColor(palette, aResults)
      *
      * Adapted from code in https://github.com/cslarsen/mandelbrot-js/blob/master/mandelbrot.js
      * Copyright 2012 Christian Stigen Larsen.
      * Licensed in compliance with Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
      *
-     * @param {number} colorScheme
+     * @param {number} palette
      * @param {Array.<number>} aResults
      * @return {number}
      */
-    static getColor(colorScheme, aResults)
+    static getColor(palette, aResults)
     {
         let nRGB = 0;           // 0 is black (0x000000), used for numbers in the Mandelbrot set
 
@@ -1114,27 +1209,27 @@ class Mandelbot {
             let fSwap = true;
             let v = Mandelbot.getSmoothColor(aResults);
 
-            switch (colorScheme) {
-            case Mandelbot['COLOR_SCHEME']['BW']:
+            switch (palette) {
+            case Mandelbot['PALETTE']['BW']:
             default:
                 nRGB = -1;      // -1 is white (0xffffff)
                 break;
-            case Mandelbot['COLOR_SCHEME']['HSV1']:
+            case Mandelbot['PALETTE']['GRAY']:
+                v = Math.floor(512.0 * v / aResults[0]);
+                if (v > 0xff) v = 0xff;
+                nRGB = v | (v << 8) | (v << 16);
+                break;
+            case Mandelbot['PALETTE']['BRIGHT']:
                 nRGB = Mandelbot.getRGBFromHSV(360 * v / aResults[0], 1.0, 1.0);
                 break;
-            case Mandelbot['COLOR_SCHEME']['HSV2']:
+            case Mandelbot['PALETTE']['MUTED']:
                 fSwap = false;
                 /* falls through */
-            case Mandelbot['COLOR_SCHEME']['HSV3']:
+            case Mandelbot['PALETTE']['BLUE']:
                 nRGB = Mandelbot.getRGBFromHSV(360 * v / aResults[0], 1.0, 10.0 * v / aResults[0]);
                 if (fSwap) {    // swap red and blue bytes
                     nRGB = (nRGB & 0xff00ff00) | ((nRGB >> 16) & 0xff) | ((nRGB & 0xff) << 16);
                 }
-                break;
-            case Mandelbot['COLOR_SCHEME']['GRAY']:
-                v = Math.floor(512.0 * v / aResults[0]);
-                if (v > 0xff) v = 0xff;
-                nRGB = v | (v << 8) | (v << 16);
                 break;
             }
         }
@@ -1256,18 +1351,27 @@ Mandelbot.KEY = {
     YCENTER:    "y",
     DXCENTER:   "dx",
     DYCENTER:   "dy",
-    BIGNUMBERS: "big"
+    BIGNUMBERS: "big",
+    PALETTE:    "palette"
 };
 
 /*
- * Various Mandelbot color schemes that we support
+ * Various Mandelbot palettes supported
  */
-Mandelbot['COLOR_SCHEME'] = {
-    'BW':       0,  // B&W
-    'HSV1':     1,  // HSV1
-    'HSV2':     2,  // HSV2
-    'HSV3':     3,  // HSV3
-    'GRAY':     4   // GRAYSCALE
+Mandelbot['PALETTE'] = {
+    'BW':       1,  // B&W
+    'GRAY':     2,  // GRAYSCALE
+    'BRIGHT':   3,  //
+    'MUTED':    4,  //
+    'BLUE':     5,  //
+};
+
+/*
+ * Various Mandelbot display shapes supported
+ */
+Mandelbot['SHAPE'] = {
+    'RECT':     0,
+    'CIRCLE':   1
 };
 
 Mandelbot['CONTROL_STATUS']   = "status";
@@ -1279,7 +1383,7 @@ nMaxIterationsPerTimeslice = Mandelbot.calibrate(0, 8);
 nMaxBigIterationsPerTimeslice = Mandelbot.calibrate(0, 8, true);
 
 /**
- * newMandelbot(widthGrid, heightGrid, xCenter, yCenter, dxCenter, dyCenter, bigNumbers, colorScheme, idView, idStatus, fAutoUpdate)
+ * newMandelbot(widthGrid, heightGrid, xCenter, yCenter, dxCenter, dyCenter, bigNumbers, palette, shape, idView, idStatus, fAutoUpdate)
  *
  * Global function for creating new Mandelbots.
  *
@@ -1290,15 +1394,16 @@ nMaxBigIterationsPerTimeslice = Mandelbot.calibrate(0, 8, true);
  * @param {number|string|undefined} [dxCenter]
  * @param {number|string|undefined} [dyCenter]
  * @param {boolean} [bigNumbers]
- * @param {number|undefined} [colorScheme]
+ * @param {number|undefined} [palette]
+ * @param {number|undefined} [shape]
  * @param {string} [idView]
  * @param {string} [idStatus]
  * @param {boolean} [fAutoUpdate] (true to add the Mandelbot to the set of automatically updated Mandelbots)
  * @return {Mandelbot}
  */
-function newMandelbot(widthGrid, heightGrid, xCenter, yCenter, dxCenter, dyCenter, bigNumbers, colorScheme, idView, idStatus, fAutoUpdate = true)
+function newMandelbot(widthGrid, heightGrid, xCenter, yCenter, dxCenter, dyCenter, bigNumbers, palette, shape, idView, idStatus, fAutoUpdate = true)
 {
-    let mandelbot = new Mandelbot(widthGrid, heightGrid, xCenter, yCenter, dxCenter, dyCenter, bigNumbers, colorScheme, idView, idStatus);
+    let mandelbot = new Mandelbot(widthGrid, heightGrid, xCenter, yCenter, dxCenter, dyCenter, bigNumbers, palette, shape, idView, idStatus);
     if (fAutoUpdate) addMandelbot(mandelbot);
     return mandelbot;
 }

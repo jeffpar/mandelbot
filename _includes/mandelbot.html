@@ -6,22 +6,23 @@ Every Mandelbot must have a unique id:
 
 Mandelbots may also have the following properties:
 
-  widthView (default: 200)
-  heightView (default: 200)
+  widthView (default: '200')
+  heightView (default: '200')
   widthGrid (default: widthView)
   heightGrid (default: heightView)
-  widthStyle (default: auto)
-  heightStyle (default: auto)
-  xCenter (default: -0.75)
-  yCenter (default: 0)
-  dxCenter (default: 1.5)
+  widthStyle (default: 'auto')
+  heightStyle (default: 'auto')
+  xCenter (default: '-0.75')
+  yCenter (default: '0')
+  dxCenter (default: '1.5')
   dyCenter (default: dxCenter)
-  bigNumbers (default: false)
-  colorScheme (default: Mandelbot.COLOR_SCHEME.GRAY)
-  idStatus (default: "")
-  idDebug (default: "")
-  idReset (default: "")
-  idPrevious (default: "")
+  bigNumbers (default: 'false')
+  palette (default: 'gray')
+  shape (default: 'rect')
+  idStatus (default: '')
+  idDebug (default: '')
+  idReset (default: '')
+  idPrevious (default: '')
 
 Any property definition in the include tag overrides that property definition in the Front Matter.
 
@@ -48,14 +49,15 @@ Any property definition in the include tag overrides that property definition in
 {% assign dxCenter = include.dxCenter | default: mandelbot.dxCenter | default: 'undefined' %}
 {% assign dyCenter = include.dyCenter | default: mandelbot.dyCenter | default: dxCenter %}
 {% assign bigNumbers = include.bigNumbers | default: mandelbot.bigNumbers | default: 'false' %}
-{% assign colorScheme = include.colorScheme | default: mandelbot.colorScheme | default: 'undefined' %}
+{% assign palette = include.palette | default: mandelbot.palette | default: 'gray' %}
+{% assign shape = include.shape | default: mandelbot.shape | default: 'rect' %}
 {% assign idStatus = include.idStatus | default: mandelbot.idStatus | default: '' %}
 {% assign idDebug = include.idDebug | default: mandelbot.idDebug | default: '' %}
 {% assign idReset = include.idReset | default: mandelbot.idReset | default: '' %}
 {% assign idPrevious = include.idPrevious | default: mandelbot.idPrevious | default: '' %}
-{% capture parms %}{{ widthGrid }},{{ heightGrid }},{{ xCenter }},{{ yCenter }},{{ dxCenter }},{{ dyCenter }},{{ bigNumbers }},{{ colorScheme }},"{{ idView }}","{{ idStatus }}"{% endcapture %}
+{% capture parms %}{{ widthGrid }},{{ heightGrid }},{{ xCenter }},{{ yCenter }},{{ dxCenter }},{{ dyCenter }},{{ bigNumbers }},Mandelbot.PALETTE.{{ palette | upcase }},Mandelbot.SHAPE.{{ shape | upcase }},"{{ idView }}","{{ idStatus }}"{% endcapture %}
 
-<canvas class="mandelbot-view" id="{{ idView }}" width="{{ widthView }}" height="{{ heightView }}" style="{{ viewStyle }}"></canvas>
+<canvas class="mandelbot-{{ shape }}" id="{{ idView }}" width="{{ widthView }}" height="{{ heightView }}" style="{{ viewStyle }}"></canvas>
 
 {% if idDebug != '' and page.developer or site.developer %}<button id="{{ idDebug }}" type="button">Debug</button>{% endif %}
 {% if idReset != '' %}<button id="{{ idReset }}" type="button">Reset</button>{% endif %}
