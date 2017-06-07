@@ -697,6 +697,7 @@ class Mandelbot {
             this.xInc = (dxCenter * 2) / this.widthGrid;
             this.yTop = yCenter + dyCenter;
             this.yInc = (dyCenter * 2) / this.heightGrid;
+            console.log("prepGrid(" + this.idView + "): " + this.xCenter + "-" + this.dxCenter + " " + this.widthGrid + " (" + this.xLeft + "+" + this.xInc + ")");
         }
         else {
             /*
