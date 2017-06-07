@@ -67,9 +67,7 @@ Any property definition in the include tag overrides that property definition in
 
 <script type="text/javascript">
   var mandelbot = newMandelbot({{ parms }});
-  if (mandelbot) {
-    {% if idDebug != '' and page.developer or site.developer %}mandelbot.addControl(Mandelbot.CONTROL_DEBUG, "{{ idDebug }}");{% endif %}
-    {% if idReset != '' %}mandelbot.addControl(Mandelbot.CONTROL_RESET, "{{ idReset }}");{% endif %}
-    {% if idPrevious != '' %}mandelbot.addControl(Mandelbot.CONTROL_PREVIOUS, "{{ idPrevious }}");{% endif %}
-  }
+  {% if idDebug != '' and page.developer or site.developer %}if (mandelbot) mandelbot.addControl(Mandelbot.CONTROL_DEBUG, "{{ idDebug }}");{% endif %}
+  {% if idReset != '' %}if (mandelbot) mandelbot.addControl(Mandelbot.CONTROL_RESET, "{{ idReset }}");{% endif %}
+  {% if idPrevious != '' %}if (mandelbot) mandelbot.addControl(Mandelbot.CONTROL_PREVIOUS, "{{ idPrevious }}");{% endif %}
 </script>

@@ -677,10 +677,26 @@ class Mandelbot {
             this.yCenter = yCenter;
             this.dxCenter = dxCenter;
             this.dyCenter = dyCenter;
-            this.xLeft = this.xCenter - this.dxCenter;
-            this.xInc = (this.dxCenter * 2) / this.widthGrid;
-            this.yTop = this.yCenter + this.dyCenter;
-            this.yInc = (this.dyCenter * 2) / this.heightGrid;
+            /*
+             * I ran into a very strange Chrome-only bug, where if I immediately used any of the four
+             * preceding properties, the following calculations would *sometimes* result in NaN values.
+             * Setting breakpoints in the code, adding more logging, etc, would eliminate the bug.
+             *
+             *      this.xLeft = this.xCenter - this.dxCenter;
+             *      this.xInc = (this.dxCenter * 2) / this.widthGrid;
+             *      this.yTop = this.yCenter + this.dyCenter;
+             *      this.yInc = (this.dyCenter * 2) / this.heightGrid;
+             *
+             * It's probably a symptom of the fact that those are new properties being added to the object,
+             * which may force V8 to change its assumptions about the shape of the object at an inopportune
+             * time.  However, this function IS called from the constructor, so I consider it part of the
+             * object's initialization sequence.  Having separate initializers for those properties in the
+             * constructor, only to have them reinitialized by this function, seems silly.
+             */
+            this.xLeft = xCenter - dxCenter;
+            this.xInc = (dxCenter * 2) / this.widthGrid;
+            this.yTop = yCenter + dyCenter;
+            this.yInc = (dyCenter * 2) / this.heightGrid;
         }
         else {
             /*
