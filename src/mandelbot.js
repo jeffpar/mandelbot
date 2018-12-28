@@ -186,7 +186,7 @@ class Mandelbot {
                     if (mandelbot.xCenter == mandelbot.xReset && mandelbot.yCenter == mandelbot.yReset) {
                         if (mandelbot.dxCenter == mandelbot.dxReset && mandelbot.dyCenter == mandelbot.dyReset) {
                             mandelbot.prepGrid(Mandelbot.DEFAULT.XCENTER,  Mandelbot.DEFAULT.YCENTER,
-                                               Mandelbot.DEFAULT.DXCENTER, Mandelbot.DEFAULT.DYCENTER);
+                                               Mandelbot.DEFAULT.DXCENTER, Mandelbot.DEFAULT.DYCENTER * (mandelbot.heightGrid / mandelbot.widthGrid));
                             return;
                         }
                     }
