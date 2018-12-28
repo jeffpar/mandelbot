@@ -1,5 +1,4 @@
-Mandelbot
----------
+# Mandelbot
 
 A Mandelbot is a Mandelbrot image generator written in JavaScript.  The goals include:
 
@@ -7,16 +6,16 @@ A Mandelbot is a Mandelbrot image generator written in JavaScript.  The goals in
 - Support multiple Mandelbots per page (see [Demos](http://mandelbot.net/demos/))
 - Build it using clear, well-documented code (see [mandelbot.js](src/mandelbot.js))
 - Experiment with third-party libraries (eg, the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
-	
+
 However, this is a work-in-progress, and the Mandelbot feature set is not fully defined.  The project started as a
 diversion and an excuse to learn some new things, so expect it to evolve.
 
 For history buffs, I've [archived](/src/old/) an assortment of old related Pascal, C, and 8088 assembly-language code
-that I wrote over 30 years ago.  And the original [Scientific American](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
+that I wrote over 30 years ago.  And the original
+[Scientific American](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
 article that helped spur a lot of early interest in the Mandelbrot Set (including my own) has been archived here as well.
 
-Installation
-------------
+## Installation
 
 This project has already been installed at the [Mandelbot website](http://mandelbot.net/) using
 [GitHub Pages](https://pages.github.com/) and the [gh-pages](https://github.com/jeffpar/mandelbot/tree/gh-pages)
@@ -26,33 +25,33 @@ branch of this project.  The website is constructed using [Jekyll](https://jekyl
 If you want to install and serve your own local copies of all the files, here are the steps for macOS and the
 corresponding Terminal commands.
 
-##### Step 1: Clone the project.
+### Step 1: Clone the project
 
-	git clone https://github.com/jeffpar/mandelbot.git
-	cd mandelbot
-	git submodule update --init --recursive
+    git clone https://github.com/jeffpar/mandelbot.git
+    cd mandelbot
+    git submodule update --init --recursive
 
-##### Step 2: Install [Homebrew](https://brew.sh/) (optional if you already have Ruby).
+### Step 2: Install [Homebrew](https://brew.sh/) (optional if you already have Ruby)
 
-	/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-	
-##### Step 3: Install Ruby (optional if you already have a sufficiently current version of Ruby).
+    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
-	brew install ruby
+### Step 3: Install Ruby (optional if you already have a sufficiently current version of Ruby)
 
-##### Step 4: Install Bundler.
+    brew install ruby
 
-	gem install bundler
+### Step 4: Install Bundler
 
-##### Step 5: Install Jekyll (make sure your current directory is `mandelbot`, because this step requires the project's [Gemfile](Gemfile)). 
+    gem install bundler
 
-	bundle install
+### Step 5: Install Jekyll (make sure your current directory is `mandelbot`, because this step requires the project's [Gemfile](Gemfile))
 
-##### Step 6: Start the Jekyll server.
+    bundle install
 
-	bundle exec jekyll serve --host=0.0.0.0 --config _config.yml,_developer.yml
+### Step 6: Start the Jekyll server
 
-##### Step 7: Fire up your web browser and visit [http://localhost:4000](http://localhost:4000/).
+    bundle exec jekyll serve --host=0.0.0.0 --config _config.yml,_developer.yml
+
+### Step 7: Fire up your web browser and visit [http://localhost:4000](http://localhost:4000/)
 
 In a perfect world, the above steps would be sufficient.  Unfortunately, I ran into several problems along the way.
 Those were resolved by:
@@ -72,43 +71,42 @@ and support for a `Debug` button, which can be enabled for any Mandelbot that se
 At the moment, the `Debug` control only displays the contents of the internal log (*logDebug*) in the page's
 status control, which is handy when the JavaScript console isn't available.
 
-#### Notes for other operating systems (eg, Ubuntu)
+## Notes for other operating systems (eg, Ubuntu)
 
 On a clean Ubuntu-based system (elementary OS), I needed to:
 
-	sudo apt install git
-	sudo apt install ruby
-	sudo apt-get install ruby2.3-dev
-	sudo apt-get install zlib1g-dev
-	sudo gem install bundler
-	echo gem "'therubyracer'" >> Gemfile
-	bundle install
-	bundle exec jekyll serve --config _config.yml,_developer.yml
+    sudo apt install git
+    sudo apt install ruby
+    sudo apt-get install ruby2.3-dev
+    sudo apt-get install zlib1g-dev
+    sudo gem install bundler
+    echo gem "'therubyracer'" >> Gemfile
+    bundle install
+    bundle exec jekyll serve --config _config.yml,_developer.yml
 
 Without *therubyracer* added to the Gemfile, Jekyll would fail with the error "Could not find a JavaScript runtime."
 
-Configuration
--------------
+## Configuration
 
 Mandelbots are added to pages on the [Jekyll](https://jekyllrb.com/)-based [Mandelbot website](http://mandelbot.net)
 using the [mandelbot.html](/_includes/mandelbot.html) include file:
 
-	{% include mandelbot.html id="mandelbot1" widthView="200" %}
-	
+    {% include mandelbot.html id="mandelbot1" widthView="200" %}
+
 For pages containing multiple Mandelbots, it may be more convenient to define each Mandelbot's configuration parameters
 at the top of the page, inside the page's [Jekyll Front Matter](https://jekyllrb.com/docs/frontmatter/):
 
-	---
-	...
-	mandelbots:
-	  - id: mandelbot1
-	    widthView: 200
-	    ...
-	---
+    ---
+    ...
+    mandelbots:
+        - id: mandelbot1
+        widthView: 200
+        ...
+    ---
 
 These "predefined" Mandelbots can then be added anywhere on the page, using just the *id* parameter:
 
-	{% include mandelbot.html id="mandelbot1" %}
+    {% include mandelbot.html id="mandelbot1" %}
 
 Examples of both "inline" and "predefined" Mandelbots can be found on the [demo page](/demos/multiple/INDEX.md) for
 [Multiple Mandelbots](http://mandelbot.net/demos/multiple/).
@@ -116,7 +114,7 @@ Examples of both "inline" and "predefined" Mandelbots can be found on the [demo 
 There are also per-page properties that affect all Mandelbots on a page.  For example, setting *developer* to **true**
 at the top of the page (inside the Front Matter):
 
-	developer: true
+    developer: true
 
 will load the uncompiled version of [mandelbot.js](src/mandelbot.js), as shown on the
 [demo page](/demos/uncompiled/INDEX.md) for [Uncompiled Mandelbot](http://mandelbot.net/demos/uncompiled/).
@@ -164,66 +162,62 @@ Some Mandelbot IDs are associated with special styles; see [style.scss](/assets/
 the Mandelbot on the [mandelbot.net](http://mandelbot.net/) home page uses ID "default", which has been given the
 following CSS properties:
 
-	#default {
-	  background-color: #ffffff;
-	  background-image: url(/assets/img/default.png);
-	  background-size: 100% auto;
-	}
+    #default {
+        background-color: #ffffff;
+        background-image: url(/assets/img/default.png);
+        background-size: 100% auto;
+    }
 
 Originally, this was done so that when other sites produced a thumbnail of the home page, they would (hopefully) pick
 up the [default image](/assets/img/default.png) that the Mandelbot initially produces.  However, some sites (like
 Facebook) also require adding some metadata to the [default](/_layouts/default.html) page template:
 
-	<meta property="og:image" content="http://mandelbot.net/assets/img/default.png">
+    <meta property="og:image" content="http://mandelbot.net/assets/img/default.png">
 
-Operation
----------
+## Operation
 
 Visit the [website](http://mandelbot.net).
 
 [![Default Mandelbot](/assets/img/default.png)](http://mandelbot.net/)
 
-Modification
-------------
+## Modification
 
 Google's [Closure Compiler](https://developers.google.com/closure/compiler/) is used to create minified, ES5-compatible
 JavaScript files via a [WebStorm](https://www.jetbrains.com/webstorm/) File Watcher:
 
-	node_modules/google-closure-compiler/compiler.jar \
-	    --charset UTF-8 \
-	    --compilation_level ADVANCED_OPTIMIZATIONS \
-	    --warning_level=VERBOSE \
-	    --define='DEBUG=false' \
-	    --language_in=ES6 \
-	    --language_out=ES5 \
-	    --create_source_map $FileName$.map \
-	    --output_wrapper "(function(){%output%})() //# sourceMappingURL=/src/$FileName$.map" \
-	    --externs externs.js \
-	    --js $FileName$ \
-	    --js_output_file $FileNameWithoutExtension$.min.js	
+    node_modules/google-closure-compiler/compiler.jar \
+        --charset UTF-8 \
+        --compilation_level ADVANCED_OPTIMIZATIONS \
+        --warning_level=VERBOSE \
+        --define='DEBUG=false' \
+        --language_in=ES6 \
+        --language_out=ES5 \
+        --create_source_map $FileName$.map \
+        --output_wrapper "(function(){%output%})() //# sourceMappingURL=/src/$FileName$.map" \
+        --externs externs.js \
+        --js $FileName$ \
+        --js_output_file $FileNameWithoutExtension$.min.js
 
 Both the original and minified JavaScript [source files](/src/) are checked into the project, so this may be of little
 interest unless you plan to modify the JavaScript files, in which case you can install the Closure Compiler and other
 assorted development tools listed in [package.json](package.json) using the Node Package Manager (which, of course,
 requires that you have [Node](https://nodejs.org) installed):
 
-	npm install
+    npm install
 
-Inspiration
------------
+## Inspiration
 
 [Scientific American, August 1985: Exploring the Mandelbrot Set](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
 
 > "[Computer Recreations: A computer microscope zooms in for a look at the most complex object in mathematics](https://www.scientificamerican.com/article/mandelbrot-set)"
 by A. K. Dewdney, pp. 16-24.
 
-Perspiration
-------------
+## Perspiration
 
 Copyright © 2017 [Jeff Parsons](mailto:Jeff@pcjs.org).  This is an open source project with no formal license.
 All portions not licensed from other sources may be freely reused.  Any derivative work just needs to provide attribution
 along with the above copyright.
- 
+
 Portions copyright 2012 Christian Stigen Larsen and licensed under [Apache License](http://www.apache.org/licenses/LICENSE-2.0),
 Version 2.0.  Those portions are clearly identified in [mandelbot.js](/src/mandelbot.js) and must be accompanied by the same Apache
 License if they are redistributed.

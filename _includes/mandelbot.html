@@ -23,6 +23,7 @@ Mandelbots may also have the following properties:
   idDebug (default: '')
   idReset (default: '')
   idPrevious (default: '')
+  idDownload (default: '')
 
 Any property definition in the include tag overrides that property definition in the Front Matter.
 
@@ -55,6 +56,7 @@ Any property definition in the include tag overrides that property definition in
 {% assign idDebug = include.idDebug | default: mandelbot.idDebug | default: '' %}
 {% assign idReset = include.idReset | default: mandelbot.idReset | default: '' %}
 {% assign idPrevious = include.idPrevious | default: mandelbot.idPrevious | default: '' %}
+{% assign idDownload = include.idDownload | default: mandelbot.idDownload | default: '' %}
 {% capture parms %}{{ widthGrid }},{{ heightGrid }},{{ xCenter }},{{ yCenter }},{{ dxCenter }},{{ dyCenter }},{{ bigNumbers }},Mandelbot.PALETTE.{{ palette | upcase }},Mandelbot.SHAPE.{{ shape | upcase }},"{{ idView }}","{{ idStatus }}"{% endcapture %}
 
 <canvas class="mandelbot-{{ shape }}" id="{{ idView }}" width="{{ widthView }}" height="{{ heightView }}" style="{{ viewStyle }}"></canvas>
@@ -62,6 +64,7 @@ Any property definition in the include tag overrides that property definition in
 {% if idDebug != '' and page.developer or site.developer %}<button id="{{ idDebug }}" type="button">Debug</button>{% endif %}
 {% if idReset != '' %}<button id="{{ idReset }}" type="button">Reset</button>{% endif %}
 {% if idPrevious != '' %}<button id="{{ idPrevious }}" type="button" disabled="disabled">Previous</button>{% endif %}
+{% if idDownload != '' %}<button id="{{ idDownload }}" type="button">Download</button>{% endif %}
 
 {% if idStatus != '' %}<p class="mandelbot-status" id="{{ idStatus }}">No status</p>{% endif %}
 
@@ -70,4 +73,5 @@ Any property definition in the include tag overrides that property definition in
   {% if idDebug != '' and page.developer or site.developer %}if (mandelbot) mandelbot.addControl(Mandelbot.CONTROL_DEBUG, "{{ idDebug }}");{% endif %}
   {% if idReset != '' %}if (mandelbot) mandelbot.addControl(Mandelbot.CONTROL_RESET, "{{ idReset }}");{% endif %}
   {% if idPrevious != '' %}if (mandelbot) mandelbot.addControl(Mandelbot.CONTROL_PREVIOUS, "{{ idPrevious }}");{% endif %}
+  {% if idDownload != '' %}if (mandelbot) mandelbot.addControl(Mandelbot.CONTROL_DOWNLOAD, "{{ idDownload }}");{% endif %}
 </script>

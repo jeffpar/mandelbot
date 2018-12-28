@@ -1,11 +1,10 @@
 ---
-title: Uncompiled
+title: Uncompiled Mandelbot
 permalink: /demos/uncompiled/
 developer: true
 ---
 
-Uncompiled Mandelbot
---------------------
+# Uncompiled Mandelbot
 
 This [page](https://github.com/jeffpar/mandelbot/blob/master/demos/uncompiled/INDEX.md) sets the *developer* property
 to **true**, making it easier to debug the "uncompiled" version of [mandelbot.js](/src/mandelbot.js).

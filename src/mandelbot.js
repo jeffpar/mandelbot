@@ -114,9 +114,9 @@ class Mandelbot {
      * @param {string} [idStatus] (the id of an existing status control, if any)
      */
     constructor(widthGrid = 0, heightGrid = 0,
-                xCenter   = Mandelbot.DEFAULT.XCENTER,  yCenter  = Mandelbot.DEFAULT.YCENTER,
-                dxCenter  = Mandelbot.DEFAULT.DXCENTER, dyCenter = Mandelbot.DEFAULT.DYCENTER, bigNumbers,
-                palette, shape, idView, idStatus)
+                xCenter = Mandelbot.DEFAULT.XCENTER,
+                yCenter = Mandelbot.DEFAULT.YCENTER,
+                dxCenter, dyCenter, bigNumbers, palette, shape, idView, idStatus)
     {
         if (DEBUG) this.logDebug = [];
         this.getURLHash(idView);
@@ -138,8 +138,10 @@ class Mandelbot {
              */
             this.addControl(Mandelbot['CONTROL_STATUS'], idStatus);
             if (this.initView(idView) && this.initGrid(widthGrid || this.widthView, heightGrid || this.heightView)) {
-                this.xReset  = this.getURLValue(Mandelbot.KEY.XCENTER,  this.xDefault = xCenter, false);
-                this.yReset  = this.getURLValue(Mandelbot.KEY.YCENTER,  this.yDefault = yCenter, false);
+                dxCenter = dxCenter || Mandelbot.DEFAULT.DXCENTER;
+                dyCenter = dyCenter || (Mandelbot.DEFAULT.DYCENTER * (this.heightGrid / this.widthGrid));
+                this.xReset  = this.getURLValue(Mandelbot.KEY.XCENTER, this.xDefault = xCenter, false);
+                this.yReset  = this.getURLValue(Mandelbot.KEY.YCENTER, this.yDefault = yCenter, false);
                 this.dxReset = this.getURLValue(Mandelbot.KEY.DXCENTER, this.dxDefault = dxCenter, true);
                 this.dyReset = this.getURLValue(Mandelbot.KEY.DYCENTER, this.dyDefault = dyCenter, true);
                 this.prepGrid(this.xReset, this.yReset, this.dxReset, this.dyReset, false);
@@ -212,6 +214,29 @@ class Mandelbot {
                 }
             }
             this.updatePrevious();
+            break;
+
+        case Mandelbot['CONTROL_DOWNLOAD']:
+            if (control) {
+                control.onclick = function onDownload() {
+                    let name = "mandelbot.png";
+                    let url = mandelbot.canvasView.toDataURL("image/png");
+                    let link = document.createElement('a');
+                    if (link && typeof link.download != 'string') link = null;
+                    if (link) {
+                        link.href = url;
+                        link.download = name;
+                        document.body.appendChild(link);    // Firefox allegedly requires the link to be in the body
+                        link.click();
+                        document.body.removeChild(link);
+                        window.alert('Check your Downloads folder for ' + name + '.');
+                    }
+                    else {
+                        window.open(url);
+                        window.alert('Check your browser for a new window/tab containing the requested data' + (name? (' (' + name + ')') : ''));
+                    }
+                }
+            }
             break;
 
         case Mandelbot['CONTROL_DEBUG']:
@@ -1414,6 +1439,7 @@ Mandelbot['SHAPE'] = {
     'CIRCLE':   1
 };
 
+Mandelbot['CONTROL_DOWNLOAD'] = "download";
 Mandelbot['CONTROL_STATUS']   = "status";
 Mandelbot['CONTROL_RESET']    = "reset";
 Mandelbot['CONTROL_PREVIOUS'] = "previous";

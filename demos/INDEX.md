@@ -1,11 +1,11 @@
 ---
-title: Demos
+title: Mandelbot Demos
 permalink: /demos/
 ---
 
-Mandelbot Demos
----------------
+# Mandelbot Demos
 
-* [Circular View](circular/)
+* [Circular Mandelbot](circular/)
+* [Large Mandelbot](large/)
 * [Multiple Mandelbots](multiple/)
 * [Uncompiled Mandelbot](uncompiled/)

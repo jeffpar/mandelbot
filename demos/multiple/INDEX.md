@@ -1,5 +1,5 @@
 ---
-title: Multiple
+title: Multiple Mandelbots
 permalink: /demos/multiple/
 mandelbots:
   - id: mandelbot1
@@ -8,8 +8,7 @@ mandelbots:
     palette: bright
 ---
 
-Multiple Mandelbots
--------------------
+# Multiple Mandelbots
 
 {% include mandelbot.html id="mandelbot1" %}
 
