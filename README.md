@@ -182,21 +182,8 @@ Visit the [website](http://mandelbot.net).
 
 ## Modification
 
-Google's [Closure Compiler](https://developers.google.com/closure/compiler/) is used to create minified, ES5-compatible
-JavaScript files via a [WebStorm](https://www.jetbrains.com/webstorm/) File Watcher:
-
-    node_modules/google-closure-compiler/compiler.jar \
-        --charset UTF-8 \
-        --compilation_level ADVANCED_OPTIMIZATIONS \
-        --warning_level=VERBOSE \
-        --define='DEBUG=false' \
-        --language_in=ES6 \
-        --language_out=ES5 \
-        --create_source_map $FileName$.map \
-        --output_wrapper "(function(){%output%})() //# sourceMappingURL=/src/$FileName$.map" \
-        --externs externs.js \
-        --js $FileName$ \
-        --js_output_file $FileNameWithoutExtension$.min.js
+Google's [Closure Compiler](https://www.npmjs.com/package/google-closure-compiler) is used to create minified,
+ES5-compatible JavaScript files.
 
 Both the original and minified JavaScript [source files](/src/) are checked into the project, so this may be of little
 interest unless you plan to modify the JavaScript files, in which case you can install the Closure Compiler and other
@@ -204,6 +191,11 @@ assorted development tools listed in [package.json](package.json) using the Node
 requires that you have [Node](https://nodejs.org) installed):
 
     npm install
+
+Once Node and NPM have been installed, and `npm install` has successfully completed, the provided [gulpfile](gulpfile.js)
+can be used to invoke the compiler:
+
+    npm run compiler
 
 ## Inspiration
 

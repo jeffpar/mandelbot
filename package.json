@@ -3,6 +3,7 @@
   "version": "1.3.0",
   "description": "Mandelbrot image generator written in JavaScript",
   "scripts": {
+    "compiler": "./node_modules/.bin/gulp",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Jeff Parsons <Jeff@pcjs.org>",
