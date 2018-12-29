@@ -1,7 +1,7 @@
 /**
  * @fileoverview Implements Mandelbots
  * @author <a href="mailto:Jeff@pcjs.org">Jeff Parsons</a>
- * @copyright Copyright © 2017 [Jeff Parsons](mailto:Jeff@pcjs.org)
+ * @copyright Copyright © 2017-2019 [Jeff Parsons](mailto:Jeff@pcjs.org)
  *
  * This file is part of an open-source project (https://github.com/jeffpar/mandelbot) with no formal license.
  * All portions not licensed from other sources may be freely reused.  Any derivative work just needs to provide
