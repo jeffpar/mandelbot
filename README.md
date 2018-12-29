@@ -206,7 +206,7 @@ by A. K. Dewdney, pp. 16-24.
 
 ## Perspiration
 
-Copyright © 2017 [Jeff Parsons](mailto:Jeff@pcjs.org).  This is an open source project with no formal license.
+Copyright © 2017-2019 [Jeff Parsons](https://jeffpar.com).  This is an open source project with no formal license.
 All portions not licensed from other sources may be freely reused.  Any derivative work just needs to provide attribution
 along with the above copyright.
 
