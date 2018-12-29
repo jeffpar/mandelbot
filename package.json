@@ -7,12 +7,16 @@
   },
   "author": "Jeff Parsons <Jeff@pcjs.org>",
   "dependencies": {
-    "bignumber.js": "^4.0.1",
-    "google-closure-compiler": "^20170218.0.0",
-    "mkdirp": "^0.5.1"
+    "bignumber.js": "^4.0.1"
   },
   "repository": {
     "type": "git",
     "url": "git://github.com/jeffpar/mandelbot.git"
+  },
+  "devDependencies": {
+    "google-closure-compiler": "^20170218.0.0",
+    "gulp": "^4.0.0",
+    "gulp-sourcemaps": "^2.6.4",
+    "mkdirp": "^0.5.1"
   }
 }

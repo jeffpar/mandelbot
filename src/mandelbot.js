@@ -23,7 +23,7 @@
  *
  * @define {boolean}
  */
-let DEBUG = true;
+var DEBUG = true;
 
 let idTimeout = 0;
 let activeMandelbots = [];

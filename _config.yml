@@ -7,7 +7,7 @@ description: >
   any desktop or mobile web browser with either a mouse or touch interface.
 baseurl: ""
 domain: mandelbot.net
-url: "http://mandelbot.net"
+url: "https://mandelbot.net"
 twitter_username: mandelbotnet
 github_username:  jeffpar
 google_analytics: UA-49658648-2
@@ -15,7 +15,7 @@ google_analytics: UA-49658648-2
 # Build settings
 
 theme: jekyll-theme-cayman
-exclude: ["CNAME", "debug.html", "Gemfile*", "node_modules", "package.json", "README.*", ".git", ".idea"]
+exclude: ["CNAME", "debug.html", "Gemfile*", "modules", "node_modules", "package.json", "README.*"]
 markdown: kramdown
 kramdown:
   input: GFM
