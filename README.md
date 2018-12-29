@@ -3,7 +3,7 @@
 A Mandelbot is a Mandelbrot image generator written in JavaScript.  The goals include:
 
 - Make Mandelbots easy to use and configure (see [Configuration](#configuration))
-- Support multiple Mandelbots per page (see [Demos](http://mandelbot.net/demos/))
+- Support multiple Mandelbots per page (see [Demos](https://mandelbot.net/demos/))
 - Build it using clear, well-documented code (see [mandelbot.js](src/mandelbot.js))
 - Experiment with third-party libraries (eg, the [BigNumber](https://github.com/jeffpar/bignumber.js) JavaScript library)
 
@@ -12,12 +12,12 @@ diversion and an excuse to learn some new things, so expect it to evolve.
 
 For history buffs, I've [archived](/src/old/) an assortment of old related Pascal, C, and 8088 assembly-language code
 that I wrote over 30 years ago.  And the original
-[Scientific American](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
+[Scientific American](https://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
 article that helped spur a lot of early interest in the Mandelbrot Set (including my own) has been archived here as well.
 
 ## Installation
 
-This project has already been installed at the [Mandelbot website](http://mandelbot.net/) using
+This project has already been installed at the [Mandelbot website](https://mandelbot.net/) using
 [GitHub Pages](https://pages.github.com/) and the [gh-pages](https://github.com/jeffpar/mandelbot/tree/gh-pages)
 branch of this project.  The website is constructed using [Jekyll](https://jekyllrb.com/) and a collection of
 [Markdown](https://daringfireball.net/projects/markdown/) documents.
@@ -88,7 +88,7 @@ Without *therubyracer* added to the Gemfile, Jekyll would fail with the error "C
 
 ## Configuration
 
-Mandelbots are added to pages on the [Jekyll](https://jekyllrb.com/)-based [Mandelbot website](http://mandelbot.net)
+Mandelbots are added to pages on the [Jekyll](https://jekyllrb.com/)-based [Mandelbot website](https://mandelbot.net)
 using the [mandelbot.html](/_includes/mandelbot.html) include file:
 
     {% include mandelbot.html id="mandelbot1" widthView="200" %}
@@ -99,7 +99,7 @@ at the top of the page, inside the page's [Jekyll Front Matter](https://jekyllrb
     ---
     ...
     mandelbots:
-        - id: mandelbot1
+      - id: mandelbot1
         widthView: 200
         ...
     ---
@@ -109,7 +109,7 @@ These "predefined" Mandelbots can then be added anywhere on the page, using just
     {% include mandelbot.html id="mandelbot1" %}
 
 Examples of both "inline" and "predefined" Mandelbots can be found on the [demo page](/demos/multiple/INDEX.md) for
-[Multiple Mandelbots](http://mandelbot.net/demos/multiple/).
+[Multiple Mandelbots](https://mandelbot.net/demos/multiple/).
 
 There are also per-page properties that affect all Mandelbots on a page.  For example, setting *developer* to **true**
 at the top of the page (inside the Front Matter):
@@ -117,7 +117,7 @@ at the top of the page (inside the Front Matter):
     developer: true
 
 will load the uncompiled version of [mandelbot.js](src/mandelbot.js), as shown on the
-[demo page](/demos/uncompiled/INDEX.md) for [Uncompiled Mandelbot](http://mandelbot.net/demos/uncompiled/).
+[demo page](/demos/uncompiled/INDEX.md) for [Uncompiled Mandelbot](https://mandelbot.net/demos/uncompiled/).
 
 Mandelbots support the following properties:
 
@@ -159,7 +159,7 @@ Generally, the only reason to alter the style settings is to make the view canva
 the width of the page changes).  This is commonly done by setting *widthStyle* to *100%*.
 
 Some Mandelbot IDs are associated with special styles; see [style.scss](/assets/css/style.scss).  For example,
-the Mandelbot on the [mandelbot.net](http://mandelbot.net/) home page uses ID "default", which has been given the
+the Mandelbot on the [mandelbot.net](https://mandelbot.net/) home page uses ID "default", which has been given the
 following CSS properties:
 
     #default {
@@ -172,13 +172,13 @@ Originally, this was done so that when other sites produced a thumbnail of the h
 up the [default image](/assets/img/default.png) that the Mandelbot initially produces.  However, some sites (like
 Facebook) also require adding some metadata to the [default](/_layouts/default.html) page template:
 
-    <meta property="og:image" content="http://mandelbot.net/assets/img/default.png">
+    <meta property="og:image" content="https://mandelbot.net/assets/img/default.png">
 
 ## Operation
 
-Visit the [website](http://mandelbot.net).
+Visit the [website](https://mandelbot.net).
 
-[![Default Mandelbot](/assets/img/default.png)](http://mandelbot.net/)
+[![Default Mandelbot](/assets/img/default.png)](https://mandelbot.net/)
 
 ## Modification
 
@@ -199,7 +199,7 @@ can be used to invoke the compiler:
 
 ## Inspiration
 
-[Scientific American, August 1985: Exploring the Mandelbrot Set](http://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
+[Scientific American, August 1985: Exploring the Mandelbrot Set](https://mandelbot.net/pubs/Dewdney_Mandelbrot.pdf)
 
 > "[Computer Recreations: A computer microscope zooms in for a look at the most complex object in mathematics](https://www.scientificamerican.com/article/mandelbrot-set)"
 by A. K. Dewdney, pp. 16-24.
